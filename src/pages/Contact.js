@@ -12,7 +12,6 @@ const Contact = () => {
         minHeight: '100vh',
       }}
     >
-      {/* Navbar - Same Style as Signup.js */}
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">
           <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
@@ -28,7 +27,6 @@ const Contact = () => {
         </Container>
       </Navbar>
 
-      {/* Contact Us Section - Centered Content */}
       <div className="d-flex flex-grow-1 align-items-center justify-content-center">
         <Row className="shadow-lg rounded w-75 bg-white p-5 text-center" style={{ maxWidth: '800px' }}>
           <Col>
@@ -51,7 +49,6 @@ const Contact = () => {
         </Row>
       </div>
 
-      {/* Footer - Matches the Other Pages */}
       <footer className="text-center p-3 text-white mt-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
         <p>&copy; 2025 ImpactNow. All Rights Reserved.</p>
         <p>Contact us: <a href="mailto:support@impactnow.com" className="text-decoration-none text-white">support@impactnow.com</a></p>

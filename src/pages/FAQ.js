@@ -12,7 +12,6 @@ const FAQ = () => {
         minHeight: "100vh",
       }}
     >
-      {/* Navbar - Same Style as Contact.js & AboutUs.js */}
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">
           <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
@@ -28,13 +27,11 @@ const FAQ = () => {
         </Container>
       </Navbar>
 
-      {/* FAQ Section - Centered Content */}
       <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh", paddingTop: "100px" }}>
         <Row className="shadow-lg rounded bg-white p-4 w-75" style={{ maxWidth: "800px" }}>
           <Col>
             <h2 className="text-center fw-bold mb-4">Frequently Asked Questions</h2>
 
-            {/* Volunteers FAQ */}
             <h3 className="fw-bold text-center mt-4">For Volunteers</h3>
             <Accordion className="mb-4">
               {[
@@ -58,7 +55,6 @@ const FAQ = () => {
               ))}
             </Accordion>
 
-            {/* Admins FAQ */}
             <h3 className="fw-bold text-center mt-4">For Admins</h3>
             <Accordion>
               {[

@@ -40,7 +40,6 @@ const SignUp = () => {
         position: "relative",
       }}
     >
-      {/* Navbar FIX - Ensure it's on top */}
       <Navbar
         expand="lg"
         fixed="top"
@@ -61,7 +60,6 @@ const SignUp = () => {
         </Container>
       </Navbar>
 
-      {/* Signup Form - Adjusted margin to avoid overlapping Navbar */}
       <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh", paddingTop: "100px" }}>
         <Row className="shadow-lg rounded bg-white p-4 w-75" style={{ maxWidth: "500px" }}>
           <Col>
@@ -83,7 +81,6 @@ const SignUp = () => {
                 <Form.Control type="password" name="confirmPassword" placeholder="Confirm password" required onChange={handleChange} />
               </Form.Group>
 
-              {/* Role Selection Dropdown */}
               <Form.Group className="mb-3">
                 <Form.Label>Are you registering as a Volunteer or an Admin? *</Form.Label>
                 <Form.Select name="role" required onChange={handleChange}>
@@ -93,7 +90,6 @@ const SignUp = () => {
                 </Form.Select>
               </Form.Group>
 
-              {/* Email Verification Notice */}
               <p className="text-center text-muted">
                 After verifying your email, you will be able to complete your profile registration.
               </p>
