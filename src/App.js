@@ -6,6 +6,10 @@ import SignUp from "./pages/SignUp";
 import FAQ from "./pages/FAQ";
 import AboutUs from "./pages/AboutUs";
 import Contact from "./pages/Contact";
+import NewUser from "./pages/NewUser"; 
+import NewAdmin from "./pages/NewAdmin"; 
+import VolunteerDashboard from "./pages/VolunteerDashboard"; 
+import AdminDash from "./pages/AdminDash"; 
 import "bootstrap/dist/css/bootstrap.min.css";
 
 function App() {
@@ -18,6 +22,10 @@ function App() {
         <Route path="/faq" element={<FAQ />} />
         <Route path="/about" element={<AboutUs />} />
         <Route path="/contact" element={<Contact />} />
+        <Route path="/newuser" element={<NewUser />} /> 
+        <Route path="/newadmin" element={<NewAdmin />} /> 
+        <Route path="/dashboard" element={<VolunteerDashboard />} /> 
+        <Route path="/admin-dashboard" element={<AdminDash />} /> 
       </Routes>
     </Router>
   );

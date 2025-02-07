@@ -33,7 +33,6 @@ const Home = () => {
         </Container>
       </Navbar>
 
-      {/* Hero Section */}
       <div className="d-flex flex-grow-1 align-items-center justify-content-center text-center text-white" 
         style={{
           backgroundImage: "url('/images/Garden-Volunteer-scaled (1).jpeg')",
