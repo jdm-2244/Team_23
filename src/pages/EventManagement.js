@@ -45,15 +45,7 @@ const EventManagementForm = () => {
       return;
     }
 
-    // Send data to backend (Modify API URL based on your setup)
-    try {
-      const response = await fetch("http://your-backend-api.com/api/events", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(formData),
-      });
+    
 
       if (response.ok) {
         alert("Event successfully created!");
