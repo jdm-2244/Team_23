@@ -16,6 +16,33 @@
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
 --
+-- Table structure for table `Event_Skills`
+--
+
+DROP TABLE IF EXISTS `Event_Skills`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `Event_Skills` (
+  `event_id` int NOT NULL,
+  `skill_id` int NOT NULL,
+  `required_level` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`event_id`,`skill_id`),
+  KEY `fk_eventskills_skill` (`skill_id`),
+  CONSTRAINT `fk_eventskills_event` FOREIGN KEY (`event_id`) REFERENCES `Events` (`EID`),
+  CONSTRAINT `fk_eventskills_skill` FOREIGN KEY (`skill_id`) REFERENCES `Skills` (`skill_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `Event_Skills`
+--
+
+LOCK TABLES `Event_Skills` WRITE;
+/*!40000 ALTER TABLE `Event_Skills` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Event_Skills` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `Events`
 --
 
@@ -28,7 +55,6 @@ CREATE TABLE `Events` (
   `max_volunteers` int NOT NULL,
   `Description` varchar(200) NOT NULL,
   `Name` varchar(100) NOT NULL,
-  `skills` varchar(45) DEFAULT NULL,
   `Location_id` int NOT NULL,
   PRIMARY KEY (`EID`),
   KEY `fk_events_location` (`Location_id`),
@@ -100,6 +126,31 @@ LOCK TABLES `Notifications` WRITE;
 UNLOCK TABLES;
 
 --
+-- Table structure for table `Skills`
+--
+
+DROP TABLE IF EXISTS `Skills`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `Skills` (
+  `skill_id` int NOT NULL AUTO_INCREMENT,
+  `skill_name` varchar(45) NOT NULL,
+  `skill_description` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`skill_id`),
+  UNIQUE KEY `skill_name_UNIQUE` (`skill_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `Skills`
+--
+
+LOCK TABLES `Skills` WRITE;
+/*!40000 ALTER TABLE `Skills` DISABLE KEYS */;
+/*!40000 ALTER TABLE `Skills` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
 -- Table structure for table `User_Profile`
 --
 
@@ -125,6 +176,34 @@ CREATE TABLE `User_Profile` (
 LOCK TABLES `User_Profile` WRITE;
 /*!40000 ALTER TABLE `User_Profile` DISABLE KEYS */;
 /*!40000 ALTER TABLE `User_Profile` ENABLE KEYS */;
+UNLOCK TABLES;
+
+--
+-- Table structure for table `User_Skills`
+--
+
+DROP TABLE IF EXISTS `User_Skills`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!40101 SET character_set_client = utf8 */;
+CREATE TABLE `User_Skills` (
+  `user_id` varchar(35) NOT NULL,
+  `skill_id` int NOT NULL,
+  `proficiency_level` varchar(20) DEFAULT NULL,
+  `date_acquired` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`,`skill_id`),
+  KEY `fk_userskills_skill` (`skill_id`),
+  CONSTRAINT `fk_userskills_skill` FOREIGN KEY (`skill_id`) REFERENCES `Skills` (`skill_id`),
+  CONSTRAINT `fk_userskills_user` FOREIGN KEY (`user_id`) REFERENCES `Users` (`username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Dumping data for table `User_Skills`
+--
+
+LOCK TABLES `User_Skills` WRITE;
+/*!40000 ALTER TABLE `User_Skills` DISABLE KEYS */;
+/*!40000 ALTER TABLE `User_Skills` ENABLE KEYS */;
 UNLOCK TABLES;
 
 --
@@ -192,4 +271,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2025-02-02 15:07:35
+-- Dump completed on 2025-02-10 19:29:26
