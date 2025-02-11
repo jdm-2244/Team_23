@@ -4,8 +4,6 @@ import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 import DatePicker from "react-multi-date-picker";
 
-
-
 const NewUser = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -40,7 +38,6 @@ const NewUser = () => {
         position: "relative",
       }}
     >
-      {/* Navbar */}
       <Navbar
         expand="lg"
         fixed="top"
@@ -68,7 +65,9 @@ const NewUser = () => {
             <h2 className="text-center fw-bold mb-4">Email Verified! Please Complete Your Profile Information To Continue</h2>
 
             <Form onSubmit={handleSubmit}>
-              <Form.Group className="mb-3">
+              <Form.Group class
+
+Name="mb-3">
                 <Form.Label>Full Name *</Form.Label>
                 <Form.Control type="text" name="fullName" placeholder="Enter full name" maxLength="50" required onChange={handleChange} />
               </Form.Group>
@@ -92,7 +91,6 @@ const NewUser = () => {
                 <Form.Label>State *</Form.Label>
                 <Form.Select name="state" required onChange={handleChange}>
                   <option value="">Select State</option>
-
                   <option value="AL">Alabama</option>
                   <option value="AK">Alaska</option>
                   <option value="AZ">Arizona</option>
@@ -100,7 +98,6 @@ const NewUser = () => {
                   <option value="CA">California</option>
                   <option value="CO">Colorado</option>
                   <option value="CT">Connecticut</option>
-                  <option value="DE">Delaware</option>
                   <option value="DE">Delaware</option>
                   <option value="FL">Florida</option>
                   <option value="GA">Georgia</option>
@@ -144,8 +141,6 @@ const NewUser = () => {
                   <option value="WV">West Virginia</option>
                   <option value="WI">Wisconsin</option>
                   <option value="WY">Wyoming</option>
-
-                  
                 </Form.Select>
               </Form.Group>
 
@@ -170,8 +165,6 @@ const NewUser = () => {
                   <option value="Disability Support">Disability Support</option>
                   <option value="Sports Coaching">Sports Coaching</option>
                   <option value="Language Translation">Language Translation</option>
-                  
-                  
                 </Form.Select>
               </Form.Group>
 
@@ -182,7 +175,13 @@ const NewUser = () => {
 
               <Form.Group className="mb-3">
                 <Form.Label>Availability *</Form.Label>
-                <Form.Control type="date" name="availability" required multiple onChange={handleChange} />
+                <DatePicker
+                  multiple
+                  value={formData.availability}
+                  onChange={(dates) => setFormData({ ...formData, availability: dates })}
+                  format="MM/DD/YYYY"
+                  required
+                />
               </Form.Group>
 
               <Button variant="primary" type="submit" className="w-100">Submit Profile</Button>
@@ -193,7 +192,6 @@ const NewUser = () => {
         </Row>
       </Container>
 
-      {/* Footer */}
       <footer className="text-center p-3 text-white" style={{ background: "transparent" }}>
         <p>&copy; 2025 ImpactNow. All Rights Reserved.</p>
         <p>Contact us: support@impactnow.com</p>
