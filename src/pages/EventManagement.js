@@ -1,10 +1,10 @@
 import React, { useState } from "react";
-import { Container, Form, Button, Row, Col, Navbar, Nav } from "react-bootstrap";
+import { Container, Form, Button, Row, Col, Navbar, Nav, Dropdown, DropdownButton } from "react-bootstrap";
 import DatePicker from "react-multi-date-picker";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-const EventManagement = () => { 
+const EventManagement = () => {
   const navigate = useNavigate();
   const [charCount, setCharCount] = useState(100);
   const [formData, setFormData] = useState({
@@ -23,61 +23,76 @@ const EventManagement = () => {
     visibility: "",
   });
 
+  // List of skills
+  const skillsList = [
+    "Tutoring",
+    "Career Coaching",
+    "Event Setup",
+    "Public Speaking",
+    "First Aid Support",
+    "Blood Drive Assistance",
+    "Time Management",
+    "Organization",
+    "Multitasking",
+    "Logistics Coordination",
+    "Website Development",
+    "Animal Care",
+    "Carpentry & Building",
+    "Database Management",
+  ];
+
   // Handle input field changes
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
   };
 
-  // Handle multi-select dropdown for Required Skills
-  const handleSkillsChange = (e) => {
-    const selectedSkills = Array.from(e.target.selectedOptions, (option) => option.value);
-    setFormData({ ...formData, requiredSkills: selectedSkills });
+  // Handle multi-select dropdown selection
+  const handleSkillSelect = (skill) => {
+    let updatedSkills = [...formData.requiredSkills];
+
+    if (updatedSkills.includes(skill)) {
+      updatedSkills = updatedSkills.filter((s) => s !== skill);
+    } else {
+      updatedSkills.push(skill);
+    }
+
+    setFormData({ ...formData, requiredSkills: updatedSkills });
   };
 
   // Handle form submission
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
 
     // Basic validation
-    if (
-      !formData.eventName ||
-      !formData.eventDescription ||
-      !formData.location ||
-      !formData.urgency ||
-      !formData.eventDate ||
-      formData.requiredSkills.length === 0
-    ) {
+    if (!formData.eventName || 
+        !formData.eventDescription || 
+        !formData.location || 
+        !formData.urgency || 
+        !formData.eventDate || 
+        formData.requiredSkills.length === 0) {
       alert("Please fill in all required fields.");
       return;
     }
 
-    try {
-      // Simulated API call (replace this with your actual API integration)
-      console.log("Event Data Submitted:", formData);
+    alert("Event successfully created!");
 
-      alert("Event successfully created!");
-
-      // Reset the form after submission
-      setFormData({
-        eventName: "",
-        eventDescription: "",
-        location: "",
-        requiredSkills: [],
-        urgency: "",
-        eventDate: null,
-        maxVolunteers: "",
-        contactPerson: "",
-        contactEmail: "",
-        contactPhone: "",
-        startTime: "",
-        endTime: "",
-        visibility: "",
-      });
-    } catch (error) {
-      console.error("Error submitting event:", error);
-      alert("An error occurred while creating the event.");
-    }
+    // Reset form after submission
+    setFormData({
+      eventName: "",
+      eventDescription: "",
+      location: "",
+      requiredSkills: [],
+      urgency: "",
+      eventDate: null,
+      maxVolunteers: "",
+      contactPerson: "",
+      contactEmail: "",
+      contactPhone: "",
+      startTime: "",
+      endTime: "",
+      visibility: "",
+    });
   };
 
   return (
@@ -105,7 +120,7 @@ const EventManagement = () => {
             <h2 className="text-center fw-bold mb-4">Create a New Event</h2>
 
             <Form onSubmit={handleSubmit}>
-              {/* Event Name with Character Counter */}
+              {/* Event Name */}
               <Form.Group className="mb-3">
                 <Form.Label>Event Name * <span>({charCount} characters left)</span></Form.Label>
                 <Form.Control type="text" name="eventName" placeholder="Enter event name" maxLength="100" required onChange={(e) => {
@@ -124,15 +139,28 @@ const EventManagement = () => {
                 <Form.Control as="textarea" name="location" placeholder="Enter event location" rows={2} required onChange={handleChange} />
               </Form.Group>
 
-              {/* Required Skills */}
+              {/* Required Skills (Multi-Select Dropdown) */}
               <Form.Group className="mb-3">
                 <Form.Label>Required Skills *</Form.Label>
-                <Form.Select multiple name="requiredSkills" required onChange={handleSkillsChange}>
-                  <option value="Tutoring">Tutoring</option>
-                  <option value="Event Setup">Event Setup</option>
-                  <option value="First Aid Support">First Aid Support</option>
-                  <option value="Blood Drive Assistance">Blood Drive Assistance</option>
-                </Form.Select>
+                <DropdownButton id="skills-dropdown" title="Select Skills">
+                  <div style={{ maxHeight: "200px", overflowY: "auto" }}>
+                    {skillsList.map((skill, index) => (
+                      <Dropdown.Item key={index} onClick={() => handleSkillSelect(skill)}>
+                        <Form.Check 
+                          type="checkbox"
+                          label={skill}
+                          checked={formData.requiredSkills.includes(skill)}
+                          onChange={() => {}}
+                        />
+                      </Dropdown.Item>
+                    ))}
+                  </div>
+                </DropdownButton>
+
+                {/* Display selected skills */}
+                <div className="mt-2">
+                  <strong>Selected Skills:</strong> {formData.requiredSkills.length > 0 ? formData.requiredSkills.join(", ") : "None selected"}
+                </div>
               </Form.Group>
 
               <Form.Group className="mb-3">
@@ -154,24 +182,6 @@ const EventManagement = () => {
               <Form.Group className="mb-3">
                 <Form.Label>Max Volunteers *</Form.Label>
                 <Form.Control type="number" name="maxVolunteers" min="1" max="500" required onChange={handleChange} />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Start Time *</Form.Label>
-                <Form.Control type="time" name="startTime" required onChange={handleChange} />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>End Time *</Form.Label>
-                <Form.Control type="time" name="endTime" required onChange={handleChange} />
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Event Visibility *</Form.Label>
-                <Form.Select name="visibility" required onChange={handleChange}>
-                  <option value="Public">Public (Visible to all volunteers)</option>
-                  <option value="Private">Private (Admins must assign volunteers)</option>
-                </Form.Select>
               </Form.Group>
 
               <Button variant="primary" type="submit" className="w-100">Create Event</Button>
