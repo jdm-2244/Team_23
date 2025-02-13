@@ -4,7 +4,7 @@ import DatePicker from "react-multi-date-picker";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-const EventManagement = () => {
+const EventManagement = () => { 
   const navigate = useNavigate();
   const [charCount, setCharCount] = useState(100);
   const [formData, setFormData] = useState({
@@ -105,6 +105,7 @@ const EventManagement = () => {
             <h2 className="text-center fw-bold mb-4">Create a New Event</h2>
 
             <Form onSubmit={handleSubmit}>
+              {/* Event Name with Character Counter */}
               <Form.Group className="mb-3">
                 <Form.Label>Event Name * <span>({charCount} characters left)</span></Form.Label>
                 <Form.Control type="text" name="eventName" placeholder="Enter event name" maxLength="100" required onChange={(e) => {
@@ -148,6 +149,29 @@ const EventManagement = () => {
               <Form.Group className="mb-3">
                 <Form.Label>Event Date *</Form.Label>
                 <DatePicker value={formData.eventDate} onChange={(date) => setFormData({ ...formData, eventDate: date })} format="MM/DD/YYYY" required />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Max Volunteers *</Form.Label>
+                <Form.Control type="number" name="maxVolunteers" min="1" max="500" required onChange={handleChange} />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Start Time *</Form.Label>
+                <Form.Control type="time" name="startTime" required onChange={handleChange} />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>End Time *</Form.Label>
+                <Form.Control type="time" name="endTime" required onChange={handleChange} />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Event Visibility *</Form.Label>
+                <Form.Select name="visibility" required onChange={handleChange}>
+                  <option value="Public">Public (Visible to all volunteers)</option>
+                  <option value="Private">Private (Admins must assign volunteers)</option>
+                </Form.Select>
               </Form.Group>
 
               <Button variant="primary" type="submit" className="w-100">Create Event</Button>
