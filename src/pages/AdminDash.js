@@ -50,9 +50,9 @@ const AdminDash = () => {
             <Link to="/admin-profile" className="text-decoration-none text-white fs-6">👤 Profile</Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Button variant="link" className="text-decoration-none text-white fs-6" onClick={handleCreateEvent}>
+            <Link to="/event-management" className="text-decoration-none text-white fs-6" onClick={handleCreateEvent}>
               📅 Create a New Event
-            </Button>
+            </Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
             <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>
