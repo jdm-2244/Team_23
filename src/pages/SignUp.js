@@ -28,6 +28,13 @@ const SignUp = () => {
       return;
     }
     console.log("Form submitted:", formData);
+    
+    // Navigate based on role
+    if (formData.role === "admin") {
+      navigate('/admin-dashboard');
+    } else if (formData.role === "volunteer") {
+      navigate('/dashboard');
+    }
   };
 
   return (
@@ -111,5 +118,6 @@ const SignUp = () => {
     </Container>
   );
 };
+
 
 export default SignUp;
