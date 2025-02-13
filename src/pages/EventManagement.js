@@ -4,7 +4,7 @@ import DatePicker from "react-multi-date-picker";
 import { useNavigate } from "react-router-dom";
 import { Link } from "react-router-dom";
 
-const EventManagementForm = () => {
+const EventManagement = () => {
   const navigate = useNavigate();
   const [charCount, setCharCount] = useState(100);
   const [formData, setFormData] = useState({
@@ -23,55 +23,68 @@ const EventManagementForm = () => {
     visibility: "",
   });
 
-  // Handle input field changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
+// Handle input field changes
+const handleChange = (e) => {
+  const { name, value } = e.target;
+  setFormData({ ...formData, [name]: value });
+};
 
-  // Handle multi-select dropdown for Required Skills
-  const handleSkillsChange = (e) => {
-    const selectedSkills = Array.from(e.target.selectedOptions, (option) => option.value);
-    setFormData({ ...formData, requiredSkills: selectedSkills });
-  };
+// Handle multi-select dropdown for Required Skills
+const handleSkillsChange = (e) => {
+  const selectedSkills = Array.from(e.target.selectedOptions, (option) => option.value);
+  setFormData({ ...formData, requiredSkills: selectedSkills });
+};
 
-  // Handle form submission
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+// Handle form submission
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  
+  // Basic validation
+  if (!formData.eventName || 
+      !formData.eventDescription || 
+      !formData.location || 
+      !formData.urgency || 
+      !formData.eventDate || 
+      formData.requiredSkills.length === 0) {
+    alert("Please fill in all required fields.");
+    return;
+  }
 
-    // Basic validation
-    if (!formData.eventName || !formData.eventDescription || !formData.location || !formData.urgency || !formData.eventDate || formData.requiredSkills.length === 0) {
-      alert("Please fill in all required fields.");
-      return;
+  try {
+    // Make the API call
+    const response = await fetch('/api/events', {  // Replace with your actual API endpoint
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
+    });
+
+    if (response.ok) {
+      alert("Event successfully created!");
+      setFormData({
+        eventName: "",
+        eventDescription: "",
+        location: "",
+        requiredSkills: [],
+        urgency: "",
+        eventDate: null,
+        maxVolunteers: "",
+        contactPerson: "",
+        contactEmail: "",
+        contactPhone: "",
+        startTime: "",
+        endTime: "",
+        visibility: "",
+      });
+    } else {
+      alert("Failed to create event.");
     }
-
-    
-
-      if (response.ok) {
-        alert("Event successfully created!");
-        setFormData({
-          eventName: "",
-          eventDescription: "",
-          location: "",
-          requiredSkills: [],
-          urgency: "",
-          eventDate: null,
-          maxVolunteers: "",
-          contactPerson: "",
-          contactEmail: "",
-          contactPhone: "",
-          startTime: "",
-          endTime: "",
-          visibility: "",
-        });
-      } else {
-        alert("Failed to create event.");
-      }
-    } catch (error) {
-      console.error("Error submitting event:", error);
-      alert("An error occurred while creating the event.");
-    }
-  };
+  } catch (error) {
+    console.error("Error submitting event:", error);
+    alert("An error occurred while creating the event.");
+  }
+};
 
   return (
     <Container fluid className="p-0" style={{ minHeight: "100vh", background: "linear-gradient(to right, #6a11cb, #2575fc)" }}>
@@ -184,4 +197,4 @@ const EventManagementForm = () => {
   );
 };
 
-export default EventManagementForm;
+export default EventManagement;
