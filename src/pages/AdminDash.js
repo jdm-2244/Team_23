@@ -23,7 +23,7 @@ const AdminDash = () => {
     console.log("Admin logged out"); 
     navigate("/login"); 
   };
-
+ <NavigationBar />
   return (
     <Container
       fluid

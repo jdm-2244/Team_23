@@ -1,10 +1,18 @@
-import React from "react";
-import { Container, Navbar, Nav, Row, Col, ListGroup, Button, Card } from "react-bootstrap";
+import React, { useState } from "react";
+import { Container, Row, Col, ListGroup, Button, Card } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
+import NavigationBar from "./NavigationBar";
 
 const VolunteerDashboard = () => {
-  const firstName = "John"; 
+  const firstName = "John";
   const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+
+  const notifications = [
+    { id: 1, message: "New event added in your area", time: "2 min ago" },
+    { id: 2, message: "Profile update successful", time: "1 hour ago" },
+    { id: 3, message: "New message from admin", time: "3 hours ago" }
+  ];
 
   const eventSuggestions = [
     { name: "Park Cleanup", location: "Downtown Park", date: "Feb 10, 2025" },
@@ -13,8 +21,8 @@ const VolunteerDashboard = () => {
   ];
 
   const handleLogout = () => {
-    console.log("User logged out"); 
-    navigate("/login"); 
+    console.log("User logged out");
+    navigate("/login");
   };
 
   return (
@@ -38,6 +46,52 @@ const VolunteerDashboard = () => {
           padding: "20px",
         }}
       >
+        {/* Notification Bell */}
+        <div className="position-relative w-100 mb-3">
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="bg-dark border-0 text-white p-2 w-100 d-flex align-items-center justify-content-center position-relative"
+            style={{ cursor: 'pointer' }}
+          >
+            🔔
+            <span 
+              className="position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center"
+              style={{ 
+                width: '20px', 
+                height: '20px', 
+                top: '0', 
+                right: '40px',
+                fontSize: '12px'
+              }}
+            >
+              {notifications.length}
+            </span>
+          </button>
+          
+          {showNotifications && (
+            <div 
+              className="position-absolute bg-dark rounded shadow-lg"
+              style={{
+                width: '175px',
+                left: '0',
+                top: '100%',
+                zIndex: 1000
+              }}
+            >
+              {notifications.map(notification => (
+                <div 
+                  key={notification.id} 
+                  className="p-3 border-bottom border-secondary"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <p className="mb-1 fs-6">{notification.message}</p>
+                  <small className="text-muted">{notification.time}</small>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <ListGroup variant="flush" className="w-100 text-center">
           <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
             <Link to="/newuser" className="text-decoration-none text-white fs-6">👤 Profile</Link>
@@ -66,28 +120,13 @@ const VolunteerDashboard = () => {
       </div>
 
       <Container style={{ marginLeft: "220px", padding: "40px" }}>
-        <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
-          <Container className="d-flex justify-content-center">
-            <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
-            <Navbar.Toggle aria-controls="basic-navbar-nav" />
-            <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-              <Nav className="fs-5">
-                <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
-                <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
-                <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
-                <Nav.Link as={Link} to="/contact" className="text-white">Contact Us</Nav.Link>
-              </Nav>
-            </Navbar.Collapse>
-          </Container>
-        </Navbar>
-
+        <NavigationBar />
         <Row className="mt-5">
           <Col>
             <h2 className="text-white">Welcome back, {firstName}!</h2>
             <p className="text-white">Here are some events near you:</p>
           </Col>
         </Row>
-
         <Row>
           {eventSuggestions.map((event, index) => (
             <Col md={4} key={index} className="mb-4">
