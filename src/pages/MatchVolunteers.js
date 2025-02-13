@@ -68,7 +68,7 @@ const MatchVolunteers = () => {
       </Navbar>
 
       {/* Main Content */}
-      <Container style={{ marginLeft: "250px", padding: "40px" }}>
+      <Container style={{ marginLeft: "250px", padding: "100px" }}>
         <Row className="mb-4">
           <Col>
             <h2 className="text-white mb-4">Volunteer Lookup</h2>
