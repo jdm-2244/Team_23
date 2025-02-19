@@ -97,7 +97,7 @@ const VolunteerDashboard = () => {
             <Link to="/newuser" className="text-decoration-none text-white fs-6">👤 Profile</Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
-            <Link to="/event-search" className="text-decoration-none text-white fs-6">🔍 Event Search</Link>
+            <Link to="/eventsearch" className="text-decoration-none text-white fs-6">🔍 Event Search</Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
             <Link to="/history" className="text-decoration-none text-white fs-6">📜 History</Link>

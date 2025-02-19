@@ -11,7 +11,7 @@ import NewAdmin from "./pages/NewAdmin";
 import VolunteerDashboard from "./pages/VolunteerDashboard";
 import AdminDash from "./pages/AdminDash";
 import MatchVolunteers from "./pages/MatchVolunteers";
-
+import EventSearch from "./pages/EventSearch";
 import Volunteerhistory from "./pages/Volunteerhistory";
 import EventManagement from "./pages/EventManagement";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -33,6 +33,7 @@ function App() {
         <Route path="/match-volunteers" element={<MatchVolunteers />} />
         <Route path="/volunteer-history" element={<Volunteerhistory />} />
         <Route path="/event-management" element={<EventManagement />} />
+        <Route path="/eventsearch" element={<EventSearch />} />
       </Routes>
     </Router>
   );
