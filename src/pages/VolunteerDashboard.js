@@ -1,20 +1,10 @@
 import React, { useState } from "react";
 import { Container, Row, Col, ListGroup, Button, Card } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
-<<<<<<< Updated upstream
 import NavigationBar from "./NavigationBar";
 
 const VolunteerDashboard = () => {
   const firstName = "John";
-=======
-import NavigationBar from './NavigationBar';
-
-const VolunteerDashboard = () => {
-
-  <NavigationBar />
-
-  const firstName = "John"; 
->>>>>>> Stashed changes
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
 
@@ -130,25 +120,7 @@ const VolunteerDashboard = () => {
       </div>
 
       <Container style={{ marginLeft: "220px", padding: "40px" }}>
-<<<<<<< Updated upstream
         <NavigationBar />
-=======
-        <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
-          <Container className="d-flex justify-content-center">
-            <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
-            <Navbar.Toggle aria-controls="basic-navbar-nav" />
-            <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-              <Nav className="fs-5">
-                <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
-                <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
-                <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
-                <Nav.Link as={Link} to="/contact" className="text-white">History</Nav.Link>
-              </Nav>
-            </Navbar.Collapse>
-          </Container>
-        </Navbar>
-
->>>>>>> Stashed changes
         <Row className="mt-5">
           <Col>
             <h2 className="text-white">Welcome back, {firstName}!</h2>
