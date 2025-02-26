@@ -9,7 +9,6 @@ const AdminDash = () => {
 
   const [events, setEvents] = useState([]);
 
-  
   const handleCreateEvent = () => {
     const newEvent = {
       name: `Event ${events.length + 1}`,
@@ -23,7 +22,7 @@ const AdminDash = () => {
     console.log("Admin logged out"); 
     navigate("/login"); 
   };
- <NavigationBar />
+
   return (
     <Container
       fluid
@@ -58,7 +57,7 @@ const AdminDash = () => {
             <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/notify-volunteers" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>
+            <Link to="/notifications" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>  
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
             <Link to="/volunteer-history" className="text-decoration-none text-white fs-6">📜 View Volunteer History</Link>
