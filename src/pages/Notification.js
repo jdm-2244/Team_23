@@ -14,7 +14,7 @@ const Notification = () => {
   const handleSearch = async (e) => {
     e.preventDefault();
     setLoading(true);
-    
+
     setTimeout(() => {
       const mockResult = {
         username: "volunteer123",
@@ -27,19 +27,52 @@ const Notification = () => {
           last_update: "2025-02-10"
         }
       };
-      
+
       setSearchResults(mockResult);
       setLoading(false);
     }, 1000);
   };
 
-  const handleSendNotification = () => {
+  const handleSendNotification = async () => {
     if (!message.trim()) {
       alert("Please enter a message.");
       return;
     }
-    alert(`Notification sent to ${searchResults.profile.Name}: \nType: ${notificationType}\nMessage: ${message}`);
-    setMessage("");
+    if (!searchResults || !searchResults.email) {
+      alert("No valid volunteer record found to send a notification.");
+      return;
+    }
+
+    try {
+      const response = await fetch('http://localhost:3001/api/notifications/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          toEmail: searchResults.email,
+          notificationType: notificationType,
+          message: message
+        })
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        if (errData.errors) {
+          alert(`Error sending notification: ${errData.errors.join(', ')}`);
+        } else {
+          alert(`Error sending notification: ${errData.error || 'Unknown error'}`);
+        }
+        return;
+      }
+
+      const data = await response.json();
+    
+      alert(data.message);
+
+      setMessage("");
+
+    } catch (err) {
+      alert("Failed to send notification. " + err.message);
+    }
   };
 
   return (
@@ -80,7 +113,7 @@ const Notification = () => {
                     <Col md={4}>
                       <Form.Group className="mb-3">
                         <Form.Label>Search By</Form.Label>
-                        <Form.Select 
+                        <Form.Select
                           value={searchType}
                           onChange={(e) => setSearchType(e.target.value)}
                         >
@@ -102,15 +135,12 @@ const Notification = () => {
                       </Form.Group>
                     </Col>
                   </Row>
-                  <Button 
-                    variant="primary" 
-                    type="submit" 
+                  <Button
+                    variant="primary"
+                    type="submit"
                     className="w-100"
                     disabled={loading}
-                    style={{
-                      backgroundColor: "#2575fc",
-                      border: "none"
-                    }}
+                    style={{ backgroundColor: "#2575fc", border: "none" }}
                   >
                     {loading ? 'Searching...' : 'Search Volunteer'}
                   </Button>
@@ -135,7 +165,6 @@ const Notification = () => {
 
                   <h5 className="mt-4">Send Notification</h5>
 
-                  {/* Dropdown for Notification Type */}
                   <Form.Group className="mb-3">
                     <Form.Label>Notification Type</Form.Label>
                     <Form.Select
@@ -148,7 +177,6 @@ const Notification = () => {
                     </Form.Select>
                   </Form.Group>
 
-                  {/* Notification Message Input */}
                   <Form.Group className="mb-3">
                     <Form.Label>Message</Form.Label>
                     <Form.Control
@@ -160,8 +188,8 @@ const Notification = () => {
                     />
                   </Form.Group>
 
-                  <Button 
-                    variant="success" 
+                  <Button
+                    variant="success"
                     className="w-100"
                     onClick={handleSendNotification}
                   >
