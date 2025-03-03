@@ -5,53 +5,42 @@ import NavigationBar from './NavigationBar';
 
 const VolunteerHistory = () => {
   const navigate = useNavigate();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [dateFilter, setDateFilter] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  
+  const [volunteerRecords, setVolunteerRecords] = useState([]);
 
-  // Enhanced volunteer records with all event management fields
-  const [volunteerRecords, setVolunteerRecords] = useState([
-    {
-      id: 1,
-      volunteerName: "John Doe",
-      eventName: "Community Garden Clean-up",
-      eventDate: "2025-01-15",
-      checkInTime: "09:00",
-      checkOutTime: "12:00",
-      hoursServed: 3,
-      status: "Completed",
-      location: "Community Garden",
-      skills: ["Gardening", "Physical Labor"],
-      maxVolunteers: 20,
-      description: "Annual community garden maintenance",
-      checkedIn: true,
-      feedback: "Great work and attitude",
-      role: "General Volunteer"
-    }
-  ]);
-
-  // Validation schema
   const validateRecord = (record) => {
     const errors = [];
     
-    // Required field validations
     if (!record.volunteerName) errors.push("Volunteer name is required");
     if (!record.eventName) errors.push("Event name is required");
     if (!record.eventDate) errors.push("Event date is required");
     if (!record.status) errors.push("Status is required");
     
-    // Field length validations
-    if (record.volunteerName?.length > 100) errors.push("Volunteer name must be less than 100 characters");
-    if (record.eventName?.length > 100) errors.push("Event name must be less than 100 characters");
-    if (record.description?.length > 500) errors.push("Description must be less than 500 characters");
+    if (record.volunteerName?.length > 100) {
+      errors.push("Volunteer name must be less than 100 characters");
+    }
+    if (record.eventName?.length > 100) {
+      errors.push("Event name must be less than 100 characters");
+    }
+    if (record.description?.length > 500) {
+      errors.push("Description must be less than 500 characters");
+    }
     
-    // Type validations
-    if (record.hoursServed && isNaN(record.hoursServed)) errors.push("Hours served must be a number");
-    if (record.maxVolunteers && isNaN(record.maxVolunteers)) errors.push("Max volunteers must be a number");
+    if (record.hoursServed && isNaN(record.hoursServed)) {
+      errors.push("Hours served must be a number");
+    }
+    if (record.maxVolunteers && isNaN(record.maxVolunteers)) {
+      errors.push("Max volunteers must be a number");
+    }
     
-    // Date validations
-    if (record.eventDate && !isValidDate(record.eventDate)) errors.push("Invalid event date");
+    if (record.eventDate && !isValidDate(record.eventDate)) {
+      errors.push("Invalid event date");
+    }
     
     return errors;
   };
@@ -61,20 +50,38 @@ const VolunteerHistory = () => {
     return date instanceof Date && !isNaN(date);
   };
 
-  // Filter records based on search term and date
-  const filteredRecords = volunteerRecords.filter(record => {
-    const matchesSearch = searchTerm === '' || 
+  useEffect(() => {
+    const fetchRecords = async () => {
+      try {
+        const response = await fetch('http://localhost:3001/api/volunteer-history');
+        if (!response.ok) {
+          throw new Error('Failed to fetch volunteer history');
+        }
+        const data = await response.json();
+        setVolunteerRecords(data);
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRecords();
+  }, []);
+
+  const filteredRecords = volunteerRecords.filter((record) => {
+    const matchesSearch =
+      searchTerm === '' ||
       record.volunteerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       record.eventName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesDate = dateFilter === '' || 
-      record.eventDate.startsWith(dateFilter);
-    
+
+    const matchesDate =
+      dateFilter === '' || record.eventDate.startsWith(dateFilter);
+
     return matchesSearch && matchesDate;
   });
 
   const exportRecord = (recordId) => {
-    const record = volunteerRecords.find(r => r.id === recordId);
+    const record = volunteerRecords.find((r) => r.id === recordId);
     if (!record) {
       setError('Record not found');
       return;
@@ -86,9 +93,12 @@ const VolunteerHistory = () => {
       return;
     }
 
-    // Export logic here
     console.log('Exporting record:', record);
   };
+
+  if (loading) {
+    return <div>Loading Volunteer History...</div>;
+  }
 
   return (
     <Container
@@ -201,22 +211,26 @@ const VolunteerHistory = () => {
                           ))}
                         </td>
                         <td>
-                          <span className={`badge ${record.status === 'Completed' ? 'bg-success' : 'bg-warning'}`}>
+                          <span
+                            className={`badge ${
+                              record.status === 'Completed' ? 'bg-success' : 'bg-warning'
+                            }`}
+                          >
                             {record.status}
                           </span>
                         </td>
                         <td>{record.role}</td>
                         <td>
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm" 
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
                             className="me-2"
                             onClick={() => navigate(`/volunteer-details/${record.id}`)}
                           >
                             View Details
                           </Button>
-                          <Button 
-                            variant="outline-secondary" 
+                          <Button
+                            variant="outline-secondary"
                             size="sm"
                             onClick={() => exportRecord(record.id)}
                           >
