@@ -1,196 +1,274 @@
-// Start with pulling react and useState for state management
-import React, { useState } from "react"; 
-// Importing Bootstrap components for our UI
-import { Container, Form, Button, Row, Col, Navbar, Nav, Dropdown, DropdownButton } from "react-bootstrap"; 
-// Data picker used for selecting event date
-import DatePicker from "react-multi-date-picker";
-// Import link for nagivation hook and link for navigation
-import { useNavigate } from "react-router-dom";
-import { Link } from "react-router-dom";
+import React, { useState } from "react";
+import { Container, Navbar, Nav, Row, Col, ListGroup, Button, Card, Form } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 
 const EventManagement = () => {
   const navigate = useNavigate();
-  const [charCount, setCharCount] = useState(100); // This will be used to track the character count in event name
-  // This will be used for managing the form inputs 
-  const [formData, setFormData] = useState({
-    eventName: "",
-    eventDescription: "",
+  const [eventForm, setEventForm] = useState({
+    name: "",
     location: "",
-    requiredSkills: [],
-    urgency: "",
-    eventDate: null,
-    maxVolunteers: "",
-    contactPerson: "",
-    contactEmail: "",
-    contactPhone: "",
-    startTime: "",
-    endTime: "",
-    visibility: "",
+    date: "",
+    time: "",
+    description: "",
+    volunteersNeeded: 0,
+    skills: []
   });
 
-  // List of the avaiable skills for selection
-  const skillsList = [
-    "Tutoring",
-    "Career Coaching",
-    "Event Setup",
-    "Public Speaking",
-    "First Aid Support",
-    "Blood Drive Assistance",
-    "Time Management",
-    "Organization",
-    "Multitasking",
-    "Logistics Coordination",
-    "Website Development",
-    "Animal Care",
-    "Carpentry & Building",
-    "Database Management",
-  ];
-
-  // This will handle in form input field changes
-  const handleChange = (e) => {
+  const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
-  };
-
-  // This will handle multi-select dropdown selections
-  const handleSkillSelect = (skill) => {
-    let updatedSkills = [...formData.requiredSkills];
-
-    if (updatedSkills.includes(skill)) {
-      updatedSkills = updatedSkills.filter((s) => s !== skill);
-    } else {
-      updatedSkills.push(skill);
-    }
-
-    setFormData({ ...formData, requiredSkills: updatedSkills });
-  };
-
-  // Used to handle the form submission
-  const handleSubmit = (e) => {
-    e.preventDefault(); //Prevent the page reload on form
-
-    // Validation check for the required fields on event form
-    if (!formData.eventName || 
-        !formData.eventDescription || 
-        !formData.location || 
-        !formData.urgency || 
-        !formData.eventDate || 
-        formData.requiredSkills.length === 0) {
-      alert("Please fill in all required fields.");
-      return;
-    }
-    // Display success message on completion of event 
-    alert("Event successfully created!");
-
-    // Reset the form after submission of event.
-    setFormData({
-      eventName: "",
-      eventDescription: "",
-      location: "",
-      requiredSkills: [],
-      urgency: "",
-      eventDate: null,
-      maxVolunteers: "",
-      contactPerson: "",
-      contactEmail: "",
-      contactPhone: "",
-      startTime: "",
-      endTime: "",
-      visibility: "",
+    setEventForm({
+      ...eventForm,
+      [name]: value
     });
   };
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    console.log("Event created:", eventForm);
+    // Here you would typically make an API call to create the event
+    alert("Event created successfully!");
+    setEventForm({
+      name: "",
+      location: "",
+      date: "",
+      time: "",
+      description: "",
+      volunteersNeeded: 0,
+      skills: []
+    });
+  };
+
+  const handleLogout = () => {
+    console.log("Admin logged out");
+    navigate("/login");
+  };
+
   return (
-    <Container fluid className="p-0" style={{ minHeight: "100vh", background: "linear-gradient(to right, #6a11cb, #2575fc)" }}>
-      {/* Navgationbar Section*/}
-      <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
-        <Container>
-          <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-            <Nav className="fs-5">
-              <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
-              <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
-              <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
-              <Nav.Link as={Link} to="/contact" className="text-white">Contact Us</Nav.Link>
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
+    <Container
+      fluid
+      className="p-0"
+      style={{
+        background: "linear-gradient(to right, #6a11cb, #2575fc)",
+        minHeight: "100vh",
+        display: "flex",
+      }}
+    >
+      {/* Sidebar */}
+      <div
+        className="bg-dark text-white d-flex flex-column justify-content-between align-items-center rounded shadow-lg"
+        style={{
+          width: "220px",
+          minHeight: "360px",
+          position: "fixed",
+          left: "20px",
+          top: "120px",
+          padding: "20px",
+        }}
+      >
+        <ListGroup variant="flush" className="w-100 text-center">
+          <ListGroup.Item className="bg-dark text-white border-0 py-2">
+            <Link to="/admin-profile" className="text-decoration-none text-white fs-6">👤 Profile</Link>
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2">
+            <Link to="/event-management" className="text-decoration-none text-white fs-6">
+              📅 Create a New Event
+            </Link>
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2">
+            <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2">
+            <Link to="/notifications" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>  
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2">
+            <Link to="/volunteer-history" className="text-decoration-none text-white fs-6">📜 View Volunteer History</Link>
+          </ListGroup.Item>
+        </ListGroup>
 
-      {/* The Event Form */}
-      <Container className="d-flex align-items-center justify-content-center" style={{ minHeight: "100vh", paddingTop: "100px" }}>
-        <Row className="shadow-lg rounded bg-white p-4 w-75" style={{ maxWidth: "500px" }}>
+        <Button
+          variant="danger"
+          className="w-100 mt-3"
+          onClick={handleLogout}
+          style={{
+            backgroundColor: "#dc3545",
+            border: "none",
+            padding: "10px 0",
+            fontSize: "16px",
+          }}
+        >
+          🚪 Log Out
+        </Button>
+      </div>
+
+      {/* Main Content */}
+      <Container style={{ marginLeft: "250px", padding: "40px" }}>
+        {/* Navbar */}
+        <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
+          <Container className="d-flex justify-content-center">
+            <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
+            <Navbar.Toggle aria-controls="basic-navbar-nav" />
+            <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
+              <Nav className="fs-5">
+                <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
+                <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
+                <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
+                <Nav.Link as={Link} to="/contact" className="text-white">Contact Us</Nav.Link>
+              </Nav>
+            </Navbar.Collapse>
+          </Container>
+        </Navbar>
+
+        <Row className="mt-5">
           <Col>
-            <h2 className="text-center fw-bold mb-4">Create a New Event</h2>
+            <h2 className="text-white">Create a New Event</h2>
+            <p className="text-white">Fill out the form below to create a new volunteer event.</p>
+          </Col>
+        </Row>
 
-            <Form onSubmit={handleSubmit}>
-              {/* Event Name */}
-              <Form.Group className="mb-3">
-                <Form.Label>Event Name * <span>({charCount} characters left)</span></Form.Label>
-                <Form.Control type="text" name="eventName" placeholder="Enter event name" maxLength="100" required onChange={(e) => {
-                  handleChange(e);
-                  setCharCount(100 - e.target.value.length);
-                }} />
-              </Form.Group>
-              {/*Used to type in the events description */}
-              <Form.Group className="mb-3">
-                <Form.Label>Event Description *</Form.Label>
-                <Form.Control as="textarea" name="eventDescription" placeholder="Describe the event" rows={3} required onChange={handleChange} />
-              </Form.Group>
-              {/*Used to enter the location of event*/}
-              <Form.Group className="mb-3">
-                <Form.Label>Location *</Form.Label>
-                <Form.Control as="textarea" name="location" placeholder="Enter event location" rows={2} required onChange={handleChange} />
-              </Form.Group>
-
-              {/* Used for required skills dropdown */}
-              <Form.Group className="mb-3">
-                <Form.Label>Required Skills *</Form.Label>
-                <DropdownButton id="skills-dropdown" title="Select Skills">
-                  <div style={{ maxHeight: "200px", overflowY: "auto" }}>
-                    {skillsList.map((skill, index) => (
-                      <Dropdown.Item key={index} onClick={() => handleSkillSelect(skill)}>
-                        <Form.Check 
-                          type="checkbox"
-                          label={skill}
-                          checked={formData.requiredSkills.includes(skill)}
-                          onChange={() => {}}
+        <Row>
+          <Col lg={8}>
+            <Card className="shadow-lg p-4">
+              <Card.Body>
+                <Form onSubmit={handleSubmit}>
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Event Name</Form.Label>
+                        <Form.Control 
+                          type="text" 
+                          name="name" 
+                          value={eventForm.name}
+                          onChange={handleInputChange}
+                          required 
+                          placeholder="Enter event name" 
                         />
-                      </Dropdown.Item>
-                    ))}
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Location</Form.Label>
+                        <Form.Control 
+                          type="text" 
+                          name="location" 
+                          value={eventForm.location}
+                          onChange={handleInputChange}
+                          required 
+                          placeholder="Enter event location" 
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Date</Form.Label>
+                        <Form.Control 
+                          type="date" 
+                          name="date" 
+                          value={eventForm.date}
+                          onChange={handleInputChange}
+                          required 
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Time</Form.Label>
+                        <Form.Control 
+                          type="time" 
+                          name="time" 
+                          value={eventForm.time}
+                          onChange={handleInputChange}
+                          required 
+                        />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Description</Form.Label>
+                    <Form.Control 
+                      as="textarea" 
+                      name="description" 
+                      value={eventForm.description}
+                      onChange={handleInputChange}
+                      rows={4} 
+                      placeholder="Describe the event and what volunteers will be doing" 
+                      required 
+                    />
+                  </Form.Group>
+
+                  <Row>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Number of Volunteers Needed</Form.Label>
+                        <Form.Control 
+                          type="number" 
+                          name="volunteersNeeded" 
+                          value={eventForm.volunteersNeeded}
+                          onChange={handleInputChange}
+                          min="1" 
+                          required 
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Skills Required (Optional)</Form.Label>
+                        <Form.Select 
+                          name="skills" 
+                          onChange={handleInputChange}
+                          multiple
+                        >
+                          <option value="communication">Communication</option>
+                          <option value="teamwork">Teamwork</option>
+                          <option value="languages">Foreign Languages</option>
+                          <option value="medical">Medical Training</option>
+                          <option value="teaching">Teaching</option>
+                          <option value="technical">Technical Skills</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  <div className="d-flex justify-content-end mt-4">
+                    <Button 
+                      variant="secondary" 
+                      className="me-2"
+                      onClick={() => navigate("/admin-dashboard")}
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      variant="primary" 
+                      type="submit" 
+                      style={{
+                        background: "linear-gradient(to right, #6a11cb, #2575fc)",
+                        border: "none"
+                      }}
+                    >
+                      Create Event
+                    </Button>
                   </div>
-                </DropdownButton>
+                </Form>
+              </Card.Body>
+            </Card>
+          </Col>
 
-                {/* Display the selected skills */}
-                <div className="mt-2">
-                  <strong>Selected Skills:</strong> {formData.requiredSkills.length > 0 ? formData.requiredSkills.join(", ") : "None selected"}
-                </div>
-              </Form.Group>
-              {/*Input for urgency level */}
-              <Form.Group className="mb-3">
-                <Form.Label>Urgency *</Form.Label>
-                <Form.Select name="urgency" required onChange={handleChange}>
-                  <option value="">Select Urgency</option>
-                  <option value="Low">Low</option>
-                  <option value="Medium">Medium</option>
-                  <option value="High">High</option>
-                  <option value="Critical">Critical</option>
-                </Form.Select>
-              </Form.Group>
-
-              <Form.Group className="mb-3">
-                <Form.Label>Event Date *</Form.Label>
-                <DatePicker value={formData.eventDate} onChange={(date) => setFormData({ ...formData, eventDate: date })} format="MM/DD/YYYY" required />
-              </Form.Group>
-              {/*Input for maximum volunteers */}
-              <Form.Group className="mb-3">
-                <Form.Label>Max Volunteers *</Form.Label>
-                <Form.Control type="number" name="maxVolunteers" min="1" max="500" required onChange={handleChange} />
-              </Form.Group>
-              {/* Button used for submission*/}
-              <Button variant="primary" type="submit" className="w-100">Create Event</Button>
-            </Form>
+          <Col lg={4}>
+            <Card className="shadow-lg">
+              <Card.Body>
+                <Card.Title>Tips for Creating Effective Events</Card.Title>
+                <ListGroup variant="flush">
+                  <ListGroup.Item>Be clear about volunteer responsibilities</ListGroup.Item>
+                  <ListGroup.Item>Specify the skills needed for the event</ListGroup.Item>
+                  <ListGroup.Item>Provide detailed location information</ListGroup.Item>
+                  <ListGroup.Item>Include any special instructions or requirements</ListGroup.Item>
+                  <ListGroup.Item>Make the description engaging and motivating</ListGroup.Item>
+                </ListGroup>
+              </Card.Body>
+            </Card>
           </Col>
         </Row>
       </Container>

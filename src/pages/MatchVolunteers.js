@@ -1,42 +1,143 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Container, Navbar, Nav, Row, Col, Button, Card, Form } from "react-bootstrap";
 import { Link } from "react-router-dom";
-import Sidebar from './Admin_sidebar';  // Import the new Sidebar component
+import Sidebar from './Admin_sidebar';
 
 const MatchVolunteers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('username');
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [events, setEvents] = useState([]);
+  const [selectedEvent, setSelectedEvent] = useState('');
+  const [matchStatus, setMatchStatus] = useState(null);
+
+  // Get auth headers for fetch
+  const getAuthHeaders = () => ({
+    Authorization: `Bearer ${localStorage.getItem('authToken')}`
+  });
+
+  // Fetch events when component mounts
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch('/pages/match-volunteers/events', {
+          method: 'GET',
+          headers: getAuthHeaders()
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Error: ${response.status}`);
+        }
+        
+        const eventsData = await response.json();
+        setEvents(eventsData);
+      } catch (error) {
+        console.error("Error fetching events:", error);
+      }
+    };
+    
+    fetchEvents();
+  }, []);
 
   const handleSearch = async (e) => {
-    e.preventDefault();
+    if (e && e.preventDefault) e.preventDefault();
     setLoading(true);
+    setError(null);
     
-    setTimeout(() => {
-      const mockResult = {
-        username: "volunteer123",
-        email: "volunteer@example.com",
-        phone_number: "123-456-7890",
-        role: "volunteer",
-        profile: {
-          Name: "John Doe",
-          location: "New York",
-          last_update: "2025-02-10"
-        },
-        history: [
-          {
-            EID: 1,
-            checkin: true,
-            event_name: "Community Cleanup",
-            event_date: "2025-01-15"
-          }
-        ]
+    console.log(`Searching with type: ${searchType}, term: ${searchTerm}`);
+  
+    try {
+      // First search for the volunteer
+      const volunteerResponse = await fetch(
+        `/pages/match-volunteers/volunteers/search?type=${searchType}&term=${searchTerm}`, 
+        {
+          method: 'GET',
+          headers: getAuthHeaders()
+        }
+      );
+      
+      if (!volunteerResponse.ok) {
+        const errorData = await volunteerResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error: ${volunteerResponse.status}`);
+      }
+      
+      const volunteerData = await volunteerResponse.json();
+      
+      // Then get their history
+      const historyResponse = await fetch(
+        `/pages/match-volunteers/volunteers/${volunteerData.username}/history`,
+        {
+          method: 'GET',
+          headers: getAuthHeaders()
+        }
+      );
+      
+      if (!historyResponse.ok) {
+        const errorData = await historyResponse.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error: ${historyResponse.status}`);
+      }
+      
+      const historyData = await historyResponse.json();
+      
+      // Combine the data
+      const combinedData = {
+        ...volunteerData,
+        history: historyData
       };
       
-      setSearchResults(mockResult);
+      setSearchResults(combinedData);
+    } catch (error) {
+      console.error("Error searching for volunteer:", error);
+      setError(error.message || "An error occurred while searching for the volunteer.");
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
+  };
+
+  const matchVolunteerToEvent = async () => {
+    if (!searchResults || !selectedEvent) {
+      setError("Please select both a volunteer and an event");
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      const response = await fetch('/pages/match-volunteers/match', {
+        method: 'POST',
+        headers: {
+          ...getAuthHeaders(),
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          username: searchResults.username,
+          eventName: selectedEvent
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Error: ${response.status}`);
+      }
+      
+      const result = await response.json();
+      setMatchStatus({
+        success: true,
+        message: `Successfully matched ${searchResults.first_name} to ${selectedEvent}`
+      });
+      
+      // Refresh volunteer history
+      handleSearch({ preventDefault: () => {} });
+    } catch (error) {
+      console.error("Error matching volunteer:", error);
+      setMatchStatus({
+        success: false,
+        message: error.message || "Failed to match volunteer to event"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,7 +150,7 @@ const MatchVolunteers = () => {
         display: "flex",
       }}
     >
-      <Sidebar />  {/* Use the Sidebar component */}
+      <Sidebar />
 
       {/* Transparent Navbar */}
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
@@ -86,6 +187,7 @@ const MatchVolunteers = () => {
                           <option value="username">Username</option>
                           <option value="email">Email</option>
                           <option value="phone">Phone Number</option>
+                          <option value="name"> Name </option>
                         </Form.Select>
                       </Form.Group>
                     </Col>
@@ -114,6 +216,12 @@ const MatchVolunteers = () => {
                     {loading ? 'Searching...' : 'Search Volunteer'}
                   </Button>
                 </Form>
+                
+                {error && (
+                  <div className="alert alert-danger mt-3">
+                    {error}
+                  </div>
+                )}
               </Card.Body>
             </Card>
           </Col>
@@ -128,31 +236,81 @@ const MatchVolunteers = () => {
                   <Row>
                     <Col md={6}>
                       <h5>Personal Details</h5>
-                      <p><strong>Name:</strong> {searchResults.profile.Name}</p>
+                      <p><strong>Name:</strong> {searchResults.first_name} {searchResults.last_name}</p>
                       <p><strong>Username:</strong> {searchResults.username}</p>
                       <p><strong>Email:</strong> {searchResults.email}</p>
                       <p><strong>Phone:</strong> {searchResults.phone_number}</p>
-                      <p><strong>Location:</strong> {searchResults.profile.location}</p>
+                      <p><strong>Location:</strong> {searchResults.location}</p>
                       <p><strong>Role:</strong> {searchResults.role}</p>
                     </Col>
                     <Col md={6}>
                       <h5>Volunteering History</h5>
-                      {searchResults.history.map((record, index) => (
-                        <Card key={index} className="mb-2">
-                          <Card.Body>
-                            <p className="mb-1"><strong>Event:</strong> {record.event_name}</p>
-                            <p className="mb-1"><strong>Date:</strong> {record.event_date}</p>
-                            <p className="mb-0">
-                              <strong>Status:</strong> 
-                              <span className={`text-${record.checkin ? 'success' : 'danger'}`}>
-                                {record.checkin ? ' Checked In' : ' No Show'}
-                              </span>
-                            </p>
-                          </Card.Body>
-                        </Card>
-                      ))}
+                      {searchResults.history && searchResults.history.length > 0 ? (
+                        searchResults.history.map((record, index) => (
+                          <Card key={index} className="mb-2">
+                            <Card.Body>
+                              <p className="mb-1"><strong>Event:</strong> {record.eventName}</p>
+                              <p className="mb-1"><strong>Date:</strong> {new Date(record.eventDate).toLocaleDateString()}</p>
+                              <p className="mb-0">
+                                <strong>Status:</strong> 
+                                <span className={`text-${record.checkin ? 'success' : 'danger'}`}>
+                                  {record.checkin ? ' Checked In' : ' No Show'}
+                                </span>
+                              </p>
+                            </Card.Body>
+                          </Card>
+                        ))
+                      ) : (
+                        <p>No volunteering history found.</p>
+                      )}
                     </Col>
                   </Row>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        )}
+
+        {searchResults && (
+          <Row className="mt-4">
+            <Col>
+              <Card className="shadow-lg">
+                <Card.Body>
+                  <h3 className="mb-4">Match to Event</h3>
+                  <Form>
+                    <Form.Group className="mb-3">
+                      <Form.Label>Select Event</Form.Label>
+                      <Form.Select 
+                        value={selectedEvent}
+                        onChange={(e) => setSelectedEvent(e.target.value)}
+                      >
+                        <option value="">-- Select an Event --</option>
+                        {events.map((event, index) => (
+                          <option key={index} value={event.name}>
+                            {event.name} - {new Date(event.date).toLocaleDateString()}
+                          </option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                    
+                    <Button 
+                      variant="primary" 
+                      onClick={matchVolunteerToEvent} 
+                      disabled={loading || !selectedEvent}
+                      style={{
+                        backgroundColor: "#2575fc",
+                        border: "none"
+                      }}
+                    >
+                      {loading ? 'Processing...' : 'Match Volunteer to Event'}
+                    </Button>
+                  </Form>
+                  
+                  {matchStatus && (
+                    <div className={`alert alert-${matchStatus.success ? 'success' : 'danger'} mt-3`}>
+                      {matchStatus.message}
+                    </div>
+                  )}
                 </Card.Body>
               </Card>
             </Col>
