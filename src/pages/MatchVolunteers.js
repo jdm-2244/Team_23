@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Container, Navbar, Nav, Row, Col, Button, Card, Form } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import Sidebar from './Admin_sidebar';
-
+import NavigationBar from './NavigationBar';
 const MatchVolunteers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('username');
@@ -153,20 +153,7 @@ const MatchVolunteers = () => {
       <Sidebar />
 
       {/* Transparent Navbar */}
-      <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
-        <Container className="d-flex justify-content-center">
-          <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-            <Nav className="fs-5">
-              <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
-              <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
-              <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
-              <Nav.Link as={Link} to="/contact" className="text-white">Contact Us</Nav.Link>
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
+      <NavigationBar />
 
       {/* Main Content */}
       <Container style={{ marginLeft: "250px", padding: "100px" }}>

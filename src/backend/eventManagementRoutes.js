@@ -1,557 +1,308 @@
-import React, { useState } from "react";
-import { Container, Navbar, Nav, Row, Col, ListGroup, Button, Card, Form, Tab, Tabs } from "react-bootstrap";
-import { Link, useNavigate } from "react-router-dom";
+const express = require('express');
+const router = express.Router();
+const eventsData = require('./eventsData'); // You'll need to create this file with sample data
 
-const EventManagement = () => {
-  const navigate = useNavigate();
-  const [key, setKey] = useState('existing');
+// Authentication middleware (reusing from volunteer routes)
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader && authHeader.split(' ')[1];
   
-  // Mock data for existing events - in a real app, this would come from your API/database
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      name: "Community Garden Cleanup",
-      location: "Central Park",
-      date: "2025-03-20",
-      time: "09:00",
-      description: "Help us clean up the community garden and prepare for spring planting.",
-      volunteersNeeded: 12,
-      volunteersRegistered: 5,
-      skills: ["gardening", "physical work"]
-    },
-    {
-      id: 2,
-      name: "Food Bank Distribution",
-      location: "Downtown Community Center",
-      date: "2025-03-25",
-      time: "14:00",
-      description: "Help distribute food to families in need at our monthly food bank event.",
-      volunteersNeeded: 20,
-      volunteersRegistered: 8,
-      skills: ["communication", "organization"]
-    }
-  ]);
-
-  // New event form state
-  const [eventForm, setEventForm] = useState({
-    name: "",
-    location: "",
-    date: "",
-    time: "",
-    description: "",
-    volunteersNeeded: 0,
-    skills: []
-  });
-
-  // Selected event for editing
-  const [selectedEvent, setSelectedEvent] = useState(null);
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    if (selectedEvent) {
-      setSelectedEvent({
-        ...selectedEvent,
-        [name]: value
-      });
-    } else {
-      setEventForm({
-        ...eventForm,
-        [name]: value
-      });
-    }
-  };
-
-  const handleCreateSubmit = (e) => {
-    e.preventDefault();
-    console.log("Event created:", eventForm);
-    
-    // Add new event to the list
-    const newEvent = {
-      ...eventForm,
-      id: events.length + 1,
-      volunteersRegistered: 0
-    };
-    
-    setEvents([...events, newEvent]);
-    
-    // Reset form
-    setEventForm({
-      name: "",
-      location: "",
-      date: "",
-      time: "",
-      description: "",
-      volunteersNeeded: 0,
-      skills: []
-    });
-    
-    // Switch to the existing events tab
-    setKey('existing');
-    
-    alert("Event created successfully!");
-  };
-
-  const handleEditSubmit = (e) => {
-    e.preventDefault();
-    console.log("Event updated:", selectedEvent);
-    
-    // Update event in the list
-    const updatedEvents = events.map(event => 
-      event.id === selectedEvent.id ? selectedEvent : event
-    );
-    
-    setEvents(updatedEvents);
-    setSelectedEvent(null);
-    
-    alert("Event updated successfully!");
-  };
-
-  const handleDeleteEvent = (id) => {
-    if (window.confirm("Are you sure you want to delete this event?")) {
-      const updatedEvents = events.filter(event => event.id !== id);
-      setEvents(updatedEvents);
-      setSelectedEvent(null);
-    }
-  };
-
-  const handleLogout = () => {
-    console.log("Admin logged out");
-    navigate("/login");
-  };
-
-  return (
-    <Container
-      fluid
-      className="p-0"
-      style={{
-        background: "linear-gradient(to right, #6a11cb, #2575fc)",
-        minHeight: "100vh",
-        display: "flex",
-      }}
-    >
-      {/* Sidebar */}
-      <div
-        className="bg-dark text-white d-flex flex-column justify-content-between align-items-center rounded shadow-lg"
-        style={{
-          width: "220px",
-          minHeight: "360px",
-          position: "fixed",
-          left: "20px",
-          top: "120px",
-          padding: "20px",
-        }}
-      >
-        <ListGroup variant="flush" className="w-100 text-center">
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/admin-profile" className="text-decoration-none text-white fs-6">👤 Profile</Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/event-management" className="text-decoration-none text-white fs-6">
-              📅 Event Management
-            </Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/notifications" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>  
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/volunteer-history" className="text-decoration-none text-white fs-6">📜 View Volunteer History</Link>
-          </ListGroup.Item>
-        </ListGroup>
-
-        <Button
-          variant="danger"
-          className="w-100 mt-3"
-          onClick={handleLogout}
-          style={{
-            backgroundColor: "#dc3545",
-            border: "none",
-            padding: "10px 0",
-            fontSize: "16px",
-          }}
-        >
-          🚪 Log Out
-        </Button>
-      </div>
-
-      {/* Main Content */}
-      <Container style={{ marginLeft: "250px", padding: "40px" }}>
-        {/* Navbar */}
-        <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
-          <Container className="d-flex justify-content-center">
-            <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
-            <Navbar.Toggle aria-controls="basic-navbar-nav" />
-            <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-              <Nav className="fs-5">
-                <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
-                <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
-                <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
-                <Nav.Link as={Link} to="/contact" className="text-white">Contact Us</Nav.Link>
-              </Nav>
-            </Navbar.Collapse>
-          </Container>
-        </Navbar>
-
-        <Row className="mt-5">
-          <Col>
-            <h2 className="text-white">Event Management</h2>
-            <p className="text-white">Create new volunteer events or manage existing ones.</p>
-          </Col>
-        </Row>
-
-        <Row>
-          <Col>
-            <Card className="shadow-lg">
-              <Card.Body>
-                <Tabs
-                  id="event-management-tabs"
-                  activeKey={key}
-                  onSelect={(k) => {
-                    setKey(k);
-                    setSelectedEvent(null);
-                  }}
-                  className="mb-4"
-                >
-                  <Tab eventKey="existing" title="Manage Existing Events">
-                    {selectedEvent ? (
-                      <Form onSubmit={handleEditSubmit}>
-                        <h4 className="mb-4">Edit Event</h4>
-                        <Row>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Event Name</Form.Label>
-                              <Form.Control 
-                                type="text" 
-                                name="name" 
-                                value={selectedEvent.name}
-                                onChange={handleInputChange}
-                                required 
-                              />
-                            </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Location</Form.Label>
-                              <Form.Control 
-                                type="text" 
-                                name="location" 
-                                value={selectedEvent.location}
-                                onChange={handleInputChange}
-                                required 
-                              />
-                            </Form.Group>
-                          </Col>
-                        </Row>
-
-                        <Row>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Date</Form.Label>
-                              <Form.Control 
-                                type="date" 
-                                name="date" 
-                                value={selectedEvent.date}
-                                onChange={handleInputChange}
-                                required 
-                              />
-                            </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Time</Form.Label>
-                              <Form.Control 
-                                type="time" 
-                                name="time" 
-                                value={selectedEvent.time}
-                                onChange={handleInputChange}
-                                required 
-                              />
-                            </Form.Group>
-                          </Col>
-                        </Row>
-
-                        <Form.Group className="mb-3">
-                          <Form.Label>Description</Form.Label>
-                          <Form.Control 
-                            as="textarea" 
-                            name="description" 
-                            value={selectedEvent.description}
-                            onChange={handleInputChange}
-                            rows={4} 
-                            required 
-                          />
-                        </Form.Group>
-
-                        <Row>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Number of Volunteers Needed</Form.Label>
-                              <Form.Control 
-                                type="number" 
-                                name="volunteersNeeded" 
-                                value={selectedEvent.volunteersNeeded}
-                                onChange={handleInputChange}
-                                min={selectedEvent.volunteersRegistered} 
-                                required 
-                              />
-                              <Form.Text className="text-muted">
-                                Currently {selectedEvent.volunteersRegistered} volunteers registered
-                              </Form.Text>
-                            </Form.Group>
-                          </Col>
-                          <Col md={6}>
-                            <Form.Group className="mb-3">
-                              <Form.Label>Skills Required (Optional)</Form.Label>
-                              <Form.Select 
-                                name="skills" 
-                                onChange={handleInputChange}
-                                multiple
-                                value={selectedEvent.skills}
-                              >
-                                <option value="communication">Communication</option>
-                                <option value="teamwork">Teamwork</option>
-                                <option value="languages">Foreign Languages</option>
-                                <option value="medical">Medical Training</option>
-                                <option value="teaching">Teaching</option>
-                                <option value="technical">Technical Skills</option>
-                                <option value="gardening">Gardening</option>
-                                <option value="physical work">Physical Work</option>
-                                <option value="organization">Organization</option>
-                              </Form.Select>
-                            </Form.Group>
-                          </Col>
-                        </Row>
-
-                        <div className="d-flex justify-content-end mt-4">
-                          <Button 
-                            variant="outline-secondary" 
-                            className="me-2"
-                            onClick={() => setSelectedEvent(null)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button 
-                            variant="danger" 
-                            className="me-2"
-                            onClick={() => handleDeleteEvent(selectedEvent.id)}
-                          >
-                            Delete Event
-                          </Button>
-                          <Button 
-                            variant="primary" 
-                            type="submit" 
-                            style={{
-                              background: "linear-gradient(to right, #6a11cb, #2575fc)",
-                              border: "none"
-                            }}
-                          >
-                            Save Changes
-                          </Button>
-                        </div>
-                      </Form>
-                    ) : (
-                      <>
-                        {events.length === 0 ? (
-                          <div className="text-center py-5">
-                            <p className="mb-3">No events have been created yet.</p>
-                            <Button 
-                              variant="primary" 
-                              onClick={() => setKey('create')}
-                              style={{
-                                background: "linear-gradient(to right, #6a11cb, #2575fc)",
-                                border: "none"
-                              }}
-                            >
-                              Create Your First Event
-                            </Button>
-                          </div>
-                        ) : (
-                          <Row>
-                            {events.map((event) => (
-                              <Col md={6} lg={4} key={event.id} className="mb-4">
-                                <Card className="h-100 shadow-sm">
-                                  <Card.Body>
-                                    <Card.Title>{event.name}</Card.Title>
-                                    <Card.Text>
-                                      <strong>📍 Location:</strong> {event.location}<br />
-                                      <strong>📅 Date:</strong> {new Date(event.date).toLocaleDateString()}<br />
-                                      <strong>⏰ Time:</strong> {event.time}<br />
-                                      <strong>👥 Volunteers:</strong> {event.volunteersRegistered}/{event.volunteersNeeded}
-                                    </Card.Text>
-                                    <div className="d-grid">
-                                      <Button 
-                                        variant="outline-primary" 
-                                        onClick={() => setSelectedEvent(event)}
-                                      >
-                                        Manage Event
-                                      </Button>
-                                    </div>
-                                  </Card.Body>
-                                </Card>
-                              </Col>
-                            ))}
-                          </Row>
-                        )}
-                      </>
-                    )}
-                  </Tab>
-                  <Tab eventKey="create" title="Create New Event">
-                    <Row>
-                      <Col lg={8}>
-                        <Form onSubmit={handleCreateSubmit}>
-                          <Row>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Event Name</Form.Label>
-                                <Form.Control 
-                                  type="text" 
-                                  name="name" 
-                                  value={eventForm.name}
-                                  onChange={handleInputChange}
-                                  required 
-                                  placeholder="Enter event name" 
-                                />
-                              </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Location</Form.Label>
-                                <Form.Control 
-                                  type="text" 
-                                  name="location" 
-                                  value={eventForm.location}
-                                  onChange={handleInputChange}
-                                  required 
-                                  placeholder="Enter event location" 
-                                />
-                              </Form.Group>
-                            </Col>
-                          </Row>
-
-                          <Row>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Date</Form.Label>
-                                <Form.Control 
-                                  type="date" 
-                                  name="date" 
-                                  value={eventForm.date}
-                                  onChange={handleInputChange}
-                                  required 
-                                />
-                              </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Time</Form.Label>
-                                <Form.Control 
-                                  type="time" 
-                                  name="time" 
-                                  value={eventForm.time}
-                                  onChange={handleInputChange}
-                                  required 
-                                />
-                              </Form.Group>
-                            </Col>
-                          </Row>
-
-                          <Form.Group className="mb-3">
-                            <Form.Label>Description</Form.Label>
-                            <Form.Control 
-                              as="textarea" 
-                              name="description" 
-                              value={eventForm.description}
-                              onChange={handleInputChange}
-                              rows={4} 
-                              placeholder="Describe the event and what volunteers will be doing" 
-                              required 
-                            />
-                          </Form.Group>
-
-                          <Row>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Number of Volunteers Needed</Form.Label>
-                                <Form.Control 
-                                  type="number" 
-                                  name="volunteersNeeded" 
-                                  value={eventForm.volunteersNeeded}
-                                  onChange={handleInputChange}
-                                  min="1" 
-                                  required 
-                                />
-                              </Form.Group>
-                            </Col>
-                            <Col md={6}>
-                              <Form.Group className="mb-3">
-                                <Form.Label>Skills Required (Optional)</Form.Label>
-                                <Form.Select 
-                                  name="skills" 
-                                  onChange={handleInputChange}
-                                  multiple
-                                >
-                                  <option value="communication">Communication</option>
-                                  <option value="teamwork">Teamwork</option>
-                                  <option value="languages">Foreign Languages</option>
-                                  <option value="medical">Medical Training</option>
-                                  <option value="teaching">Teaching</option>
-                                  <option value="technical">Technical Skills</option>
-                                  <option value="gardening">Gardening</option>
-                                  <option value="physical work">Physical Work</option>
-                                  <option value="organization">Organization</option>
-                                </Form.Select>
-                              </Form.Group>
-                            </Col>
-                          </Row>
-
-                          <div className="d-flex justify-content-end mt-4">
-                            <Button 
-                              variant="outline-secondary" 
-                              className="me-2"
-                              onClick={() => setKey('existing')}
-                            >
-                              Cancel
-                            </Button>
-                            <Button 
-                              variant="primary" 
-                              type="submit" 
-                              style={{
-                                background: "linear-gradient(to right, #6a11cb, #2575fc)",
-                                border: "none"
-                              }}
-                            >
-                              Create Event
-                            </Button>
-                          </div>
-                        </Form>
-                      </Col>
-
-                      <Col lg={4}>
-                        <Card className="shadow-lg">
-                          <Card.Body>
-                            <Card.Title>Tips for Creating Effective Events</Card.Title>
-                            <ListGroup variant="flush">
-                              <ListGroup.Item>Be clear about volunteer responsibilities</ListGroup.Item>
-                              <ListGroup.Item>Specify the skills needed for the event</ListGroup.Item>
-                              <ListGroup.Item>Provide detailed location information</ListGroup.Item>
-                              <ListGroup.Item>Include any special instructions or requirements</ListGroup.Item>
-                              <ListGroup.Item>Make the description engaging and motivating</ListGroup.Item>
-                            </ListGroup>
-                          </Card.Body>
-                        </Card>
-                      </Col>
-                    </Row>
-                  </Tab>
-                </Tabs>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </Container>
-    </Container>
-  );
+  if (!token) {
+    return res.status(401).json({ error: 'Authentication required' });
+  }
+  
+  // In a real implementation, you would verify the token
+  // For now, we'll just assume it's valid and add a mock user object to the request
+  req.user = { role: 'admin' }; // Mock user data
+  next();
 };
 
-export default EventManagement;
+// Middleware to verify admin access
+const verifyAdminAccess = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ error: 'Access denied. Admin privileges required.' });
+  }
+};
+
+/**
+ * @route   GET /api/events
+ * @desc    Get all events
+ * @access  Public
+ */
+router.get('/', (req, res) => {
+  try {
+    // Transform the events to match the frontend's expected format
+    const formattedEvents = eventsData.map(event => ({
+      id: event.id,
+      name: event.eventName || event.name,
+      location: event.location,
+      date: event.eventDate || event.date,
+      time: event.startTime || event.time,
+      description: event.eventDescription || event.description,
+      volunteersNeeded: event.maxVolunteers || event.volunteersNeeded,
+      volunteersRegistered: event.volunteersAssigned || 0,
+      skills: event.requiredSkills || event.skills || []
+    }));
+    
+    res.json(formattedEvents);
+  } catch (error) {
+    console.error('Error fetching events:', error);
+    res.status(500).json({ error: 'Server error while fetching events' });
+  }
+});
+
+/**
+ * @route   GET /api/events/:id
+ * @desc    Get single event by ID
+ * @access  Public
+ */
+router.get('/:id', (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id, 10);
+    const event = eventsData.find(event => event.id === eventId);
+    
+    if (!event) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    // Transform to frontend format
+    const formattedEvent = {
+      id: event.id,
+      name: event.eventName || event.name,
+      location: event.location,
+      date: event.eventDate || event.date,
+      time: event.startTime || event.time,
+      description: event.eventDescription || event.description,
+      volunteersNeeded: event.maxVolunteers || event.volunteersNeeded,
+      volunteersRegistered: event.volunteersAssigned || 0,
+      skills: event.requiredSkills || event.skills || []
+    };
+    
+    res.json(formattedEvent);
+  } catch (error) {
+    console.error('Error fetching event:', error);
+    res.status(500).json({ error: 'Server error while fetching event' });
+  }
+});
+
+/**
+ * @route   POST /api/events
+ * @desc    Create a new event
+ * @access  Admin only
+ */
+router.post('/', authenticateToken, verifyAdminAccess, (req, res) => {
+  try {
+    const {
+      name,
+      location,
+      date,
+      time,
+      description,
+      volunteersNeeded,
+      skills
+    } = req.body;
+    
+    // Validate required fields
+    if (!name || !description || !location || !date || !volunteersNeeded) {
+      return res.status(400).json({ error: 'Required fields are missing' });
+    }
+    
+    // Create a new event with a unique ID
+    const newId = eventsData.length > 0 ? Math.max(...eventsData.map(e => e.id)) + 1 : 1;
+    
+    // Store data in the format the backend expects but with frontend field names
+    const newEvent = {
+      id: newId,
+      eventName: name,
+      name: name, // Store both for compatibility
+      eventDescription: description,
+      description: description, // Store both for compatibility
+      location,
+      eventDate: date,
+      date: date, // Store both for compatibility
+      startTime: time,
+      time: time, // Store both for compatibility
+      requiredSkills: Array.isArray(skills) ? skills : (skills ? [skills] : []),
+      skills: Array.isArray(skills) ? skills : (skills ? [skills] : []), // Store both for compatibility
+      maxVolunteers: parseInt(volunteersNeeded, 10),
+      volunteersNeeded: parseInt(volunteersNeeded, 10), // Store both for compatibility
+      volunteersAssigned: 0,
+      volunteersRegistered: 0, // For frontend compatibility
+      createdAt: new Date().toISOString(),
+      createdBy: req.user.id || 'admin',
+      status: 'Active',
+      // Default values for fields not provided by frontend
+      urgency: 'Medium',
+      contactPerson: 'Admin',
+      contactEmail: 'admin@impactnow.org',
+      contactPhone: '555-123-4567',
+      endTime: '', // Could calculate based on time + duration
+      visibility: 'Public'
+    };
+    
+    eventsData.push(newEvent);
+    
+    // Return the event in the format the frontend expects
+    const formattedEvent = {
+      id: newEvent.id,
+      name: newEvent.name,
+      location: newEvent.location,
+      date: newEvent.date,
+      time: newEvent.time,
+      description: newEvent.description,
+      volunteersNeeded: newEvent.volunteersNeeded,
+      volunteersRegistered: newEvent.volunteersRegistered,
+      skills: newEvent.skills
+    };
+    
+    res.status(201).json(formattedEvent);
+  } catch (error) {
+    console.error('Error creating event:', error);
+    res.status(500).json({ error: 'Server error while creating event' });
+  }
+});
+
+/**
+ * @route   PUT /api/events/:id
+ * @desc    Update an event
+ * @access  Admin only
+ */
+router.put('/:id', authenticateToken, verifyAdminAccess, (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id, 10);
+    const eventIndex = eventsData.findIndex(event => event.id === eventId);
+    
+    if (eventIndex === -1) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    // Get current event data
+    const currentEvent = eventsData[eventIndex];
+    
+    const {
+      name,
+      location,
+      date,
+      time,
+      description,
+      volunteersNeeded,
+      skills
+    } = req.body;
+    
+    // Update with new data, keeping old data for any missing fields
+    const updatedEvent = {
+      ...currentEvent,
+      eventName: name || currentEvent.eventName,
+      name: name || currentEvent.name,
+      location: location || currentEvent.location,
+      eventDate: date || currentEvent.eventDate,
+      date: date || currentEvent.date,
+      startTime: time || currentEvent.startTime,
+      time: time || currentEvent.time,
+      eventDescription: description || currentEvent.eventDescription,
+      description: description || currentEvent.description,
+      requiredSkills: skills ? (Array.isArray(skills) ? skills : [skills]) : currentEvent.requiredSkills,
+      skills: skills ? (Array.isArray(skills) ? skills : [skills]) : currentEvent.skills,
+      maxVolunteers: volunteersNeeded ? parseInt(volunteersNeeded, 10) : currentEvent.maxVolunteers,
+      volunteersNeeded: volunteersNeeded ? parseInt(volunteersNeeded, 10) : currentEvent.volunteersNeeded,
+      updatedAt: new Date().toISOString(),
+      updatedBy: req.user.id || 'admin'
+    };
+    
+    // Replace the old event with the updated one
+    eventsData[eventIndex] = updatedEvent;
+    
+    // Return the event in the format the frontend expects
+    const formattedEvent = {
+      id: updatedEvent.id,
+      name: updatedEvent.name,
+      location: updatedEvent.location,
+      date: updatedEvent.date,
+      time: updatedEvent.time,
+      description: updatedEvent.description,
+      volunteersNeeded: updatedEvent.volunteersNeeded,
+      volunteersRegistered: updatedEvent.volunteersRegistered || updatedEvent.volunteersAssigned || 0,
+      skills: updatedEvent.skills
+    };
+    
+    res.json(formattedEvent);
+  } catch (error) {
+    console.error('Error updating event:', error);
+    res.status(500).json({ error: 'Server error while updating event' });
+  }
+});
+
+/**
+ * @route   DELETE /api/events/:id
+ * @desc    Delete an event
+ * @access  Admin only
+ */
+router.delete('/:id', authenticateToken, verifyAdminAccess, (req, res) => {
+  try {
+    const eventId = parseInt(req.params.id, 10);
+    const eventIndex = eventsData.findIndex(event => event.id === eventId);
+    
+    if (eventIndex === -1) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    
+    // Remove the event
+    const deletedEvent = eventsData.splice(eventIndex, 1)[0];
+    
+    res.json({ message: 'Event deleted successfully', deletedEvent });
+  } catch (error) {
+    console.error('Error deleting event:', error);
+    res.status(500).json({ error: 'Server error while deleting event' });
+  }
+});
+
+// The rest of the search/filter routes could remain the same
+// or be updated to work with both field naming conventions
+
+/**
+ * @route   GET /api/events/search/skills
+ * @desc    Search events by skills
+ * @access  Public
+ */
+router.get('/search/skills', (req, res) => {
+  try {
+    const { skills } = req.query;
+    
+    if (!skills) {
+      return res.status(400).json({ error: 'Skills parameter is required' });
+    }
+    
+    const searchSkills = skills.split(',').map(skill => skill.trim().toLowerCase());
+    
+    const matchedEvents = eventsData.filter(event => {
+      const eventSkills = event.requiredSkills || event.skills || [];
+      return eventSkills.some(skill => 
+        searchSkills.includes(skill.toLowerCase())
+      );
+    });
+    
+    // Format for frontend
+    const formattedEvents = matchedEvents.map(event => ({
+      id: event.id,
+      name: event.eventName || event.name,
+      location: event.location,
+      date: event.eventDate || event.date,
+      time: event.startTime || event.time,
+      description: event.eventDescription || event.description,
+      volunteersNeeded: event.maxVolunteers || event.volunteersNeeded,
+      volunteersRegistered: event.volunteersAssigned || 0,
+      skills: event.requiredSkills || event.skills || []
+    }));
+    
+    res.json(formattedEvents);
+  } catch (error) {
+    console.error('Error searching events by skills:', error);
+    res.status(500).json({ error: 'Server error while searching events' });
+  }
+});
+
+// Keep the remaining routes the same but add similar field compatibility adaptations
+
+module.exports = router;
