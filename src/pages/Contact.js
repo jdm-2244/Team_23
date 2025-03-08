@@ -4,15 +4,14 @@ import { Link } from 'react-router-dom';
 
 const Contact = () => {
   return (
-     <Container
-          fluid
-          className="p-0"
-          style={{
-            background: "linear-gradient(to right, #6a11cb, #2575fc)",
-            minHeight: "100vh",
-            display: "flex",
-          }}
-        >
+    <Container
+      fluid
+      className="d-flex flex-column justify-content-between p-0"
+      style={{
+        background: 'linear-gradient(to right, #6a11cb, #2575fc)',
+        minHeight: '100vh',
+      }}
+    >
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">
           <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>

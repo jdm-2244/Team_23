@@ -5,7 +5,7 @@ const volunteerHistoryRouter = require('./volunteerHistoryRoutes');
 const notificationRouter = require('./notificationRoutes');
 const loginRouter = require('./loginRoutes');
 const userProfileRouter = require('./userProfileRoutes');
-const volunteerSearchRouter = require('./volunteerSearchRoutes');
+const volunteerSearchRouter = require('./VolunteerMatchRoutes');
 const eventRouter = require('./eventManagementRoutes');
 
 const app = express();

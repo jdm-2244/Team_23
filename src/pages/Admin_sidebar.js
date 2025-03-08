@@ -27,7 +27,7 @@ const Sidebar = () => {
           <Link to="/admin-profile" className="text-decoration-none text-white fs-6">👤 Profile</Link>
         </ListGroup.Item>
         <ListGroup.Item className="bg-dark text-white border-0 py-2">
-          <Link to="/eventmanagement" className="text-decoration-none text-white fs-6">📅 Create a new Event</Link>
+          <Link to="/event-management" className="text-decoration-none text-white fs-6">📅 Create a new Event</Link>
         </ListGroup.Item>
         <ListGroup.Item className="bg-dark text-white border-0 py-2">
           <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>

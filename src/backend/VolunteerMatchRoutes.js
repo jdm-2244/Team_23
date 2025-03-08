@@ -11,10 +11,8 @@ const authenticateToken = (req, res, next) => {
   if (!token) {
     return res.status(401).json({ error: 'Authentication required' });
   }
-  
-  // In a real implementation, you would verify the token
-  // For now, we'll just assume it's valid and add a mock user object to the request
-  req.user = { role: 'admin' }; // Mock user data
+
+  req.user = { role: 'admin' }; 
   next();
 };
 

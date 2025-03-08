@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Container, Navbar, Nav, Row, Col, Button, Card, Form } from "react-bootstrap";
+import React, { useState, useEffect, useCallback } from "react";
+import { Container, Row, Col, Button, Card, Form } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import Sidebar from './Admin_sidebar';
 import NavigationBar from './NavigationBar';
@@ -7,6 +7,7 @@ const MatchVolunteers = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchType, setSearchType] = useState('username');
   const [searchResults, setSearchResults] = useState(null);
+  const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [events, setEvents] = useState([]);
@@ -41,17 +42,155 @@ const MatchVolunteers = () => {
     fetchEvents();
   }, []);
 
-  const handleSearch = async (e) => {
+  // Debounce function to limit API calls while typing
+  const debounce = (func, delay) => {
+    let timeoutId;
+    return function(...args) {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      timeoutId = setTimeout(() => {
+        func.apply(this, args);
+      }, delay);
+    };
+  };
+
+  // Live search function with validation
+  const performLiveSearch = useCallback(async (term, type) => {
+    if (!term || term.length < 1) {
+      setSuggestions([]);
+      return;
+    }
+
+    // Format the search term based on search type
+    let formattedTerm = term.trim();
+    
+    // Basic validation based on search type
+    switch(type) {
+      case 'email':
+        // For email, require at least '@' to start searching
+        if (!formattedTerm.includes('@')) {
+          return;
+        }
+        break;
+        
+      case 'phone':
+        // For phone, ensure there's at least one digit
+        if (!/\d/.test(formattedTerm)) {
+          return;
+        }
+        formattedTerm = formattedTerm.replace(/\D/g, '');
+        break;
+    }
+
+    try {
+      const response = await fetch(
+        `/pages/match-volunteers/volunteers/suggestions?type=${type}&term=${encodeURIComponent(formattedTerm)}`,
+        {
+          method: 'GET',
+          headers: getAuthHeaders()
+        }
+      );
+      
+      if (!response.ok) {
+        throw new Error(`Error: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      setSuggestions(data);
+    } catch (error) {
+      console.error("Error fetching suggestions:", error);
+      setSuggestions([]);
+    }
+  }, []);
+
+  // Create debounced version of the search
+  const debouncedSearch = useCallback(
+    debounce((term, type) => performLiveSearch(term, type), 300),
+    [performLiveSearch]
+  );
+
+  // Effect to trigger live search when searchTerm changes
+  useEffect(() => {
+    debouncedSearch(searchTerm, searchType);
+  }, [searchTerm, searchType, debouncedSearch]);
+
+  const handleSearchTermChange = (e) => {
+    setSearchTerm(e.target.value);
+    // Live search is triggered by the useEffect above
+  };
+
+  const handleSuggestionClick = (suggestion) => {
+    setSearchTerm(suggestion.displayValue);
+    setSuggestions([]);
+    handleSearch(null, suggestion.username);
+  };
+
+  const handleSearch = async (e, selectedUsername = null) => {
     if (e && e.preventDefault) e.preventDefault();
     setLoading(true);
     setError(null);
+    setSuggestions([]);
     
-    console.log(`Searching with type: ${searchType}, term: ${searchTerm}`);
+    // If no search term and no selected username, show error
+    if (!selectedUsername && !searchTerm.trim()) {
+      setError("Please enter a search term");
+      setLoading(false);
+      return;
+    }
+    
+    // Format the search term based on search type
+    let formattedTerm = selectedUsername || searchTerm.trim();
+    let searchTypeToUse = selectedUsername ? 'username' : searchType;
+    
+    // Validate and format based on search type (only if not using a selected username)
+    if (!selectedUsername) {
+      switch(searchType) {
+        case 'email':
+          // Simple email validation
+          if (!formattedTerm.includes('@') || !formattedTerm.includes('.')) {
+            setError("Please enter a valid email address");
+            setLoading(false);
+            return;
+          }
+          break;
+          
+        case 'phone':
+          // Remove non-numeric characters for phone
+          formattedTerm = formattedTerm.replace(/\D/g, '');
+          if (formattedTerm.length < 10) {
+            setError("Please enter a valid phone number");
+            setLoading(false);
+            return;
+          }
+          break;
+          
+        case 'name':
+          // Ensure name is properly formatted (at least 2 characters)
+          if (formattedTerm.length < 2) {
+            setError("Name must be at least 2 characters");
+            setLoading(false);
+            return;
+          }
+          break;
+          
+        case 'username':
+          // Ensure username has no spaces
+          if (formattedTerm.includes(' ')) {
+            setError("Username should not contain spaces");
+            setLoading(false);
+            return;
+          }
+          break;
+      }
+    }
+    
+    console.log(`Searching with type: ${searchTypeToUse}, term: ${formattedTerm}`);
   
     try {
       // First search for the volunteer
       const volunteerResponse = await fetch(
-        `/pages/match-volunteers/volunteers/search?type=${searchType}&term=${searchTerm}`, 
+        `/pages/match-volunteers/volunteers/search?type=${searchTypeToUse}&term=${encodeURIComponent(formattedTerm)}`, 
         {
           method: 'GET',
           headers: getAuthHeaders()
@@ -128,7 +267,7 @@ const MatchVolunteers = () => {
       });
       
       // Refresh volunteer history
-      handleSearch({ preventDefault: () => {} });
+      handleSearch(null, searchResults.username);
     } catch (error) {
       console.error("Error matching volunteer:", error);
       setMatchStatus({
@@ -174,19 +313,42 @@ const MatchVolunteers = () => {
                           <option value="username">Username</option>
                           <option value="email">Email</option>
                           <option value="phone">Phone Number</option>
-                          <option value="name"> Name </option>
+                          <option value="name">Name</option>
                         </Form.Select>
                       </Form.Group>
                     </Col>
                     <Col md={8}>
                       <Form.Group className="mb-3">
                         <Form.Label>Search Term</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter search term..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
+                        <div className="position-relative">
+                          <Form.Control
+                            type="text"
+                            placeholder="Enter search term..."
+                            value={searchTerm}
+                            onChange={handleSearchTermChange}
+                            autoComplete="off"
+                          />
+                          {suggestions.length > 0 && (
+                            <div className="position-absolute w-100 mt-1 shadow-lg" style={{ zIndex: 1000 }}>
+                              <Card>
+                                <Card.Body className="p-0">
+                                  <ul className="list-group list-group-flush">
+                                    {suggestions.map((suggestion, index) => (
+                                      <li 
+                                        key={index} 
+                                        className="list-group-item list-group-item-action" 
+                                        style={{ cursor: 'pointer' }}
+                                        onClick={() => handleSuggestionClick(suggestion)}
+                                      >
+                                        {suggestion.displayValue}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </Card.Body>
+                              </Card>
+                            </div>
+                          )}
+                        </div>
                       </Form.Group>
                     </Col>
                   </Row>
