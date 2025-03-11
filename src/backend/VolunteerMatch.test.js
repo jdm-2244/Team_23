@@ -1,527 +1,565 @@
-// Import the necessary testing utilities
-import request from 'supertest';
-import express from 'express';
-import { strict as assert } from 'assert';
+const request = require('supertest');
+const express = require('express');
 
-// For Jest compatibility - we need to include at least one test
-describe('Volunteer API Tests', () => {
-  it('Tests will be run through our custom runner', () => {
-    expect(true).toBe(true);
-  });
+// Fixed the import name to match the correct file name
+jest.mock('./volunteersMatchData', () => {
+  // Use the actual data structure from volunteersMatchData.js
+  return [
+    {
+      id: 1,
+      username: "jdoe",
+      first_name: "John",
+      last_name: "Doe",
+      email: "john.doe@example.com",
+      phone_number: "(555) 123-4567",
+      location: "New York, NY",
+      role: "General Volunteer",
+      skills: ["teaching", "organizing", "first aid"],
+      availability: ["weekends", "evenings"],
+      active: true
+    },
+    {
+      id: 2,
+      username: "jsmith",
+      first_name: "Jane",
+      last_name: "Smith",
+      email: "jane.smith@example.com",
+      phone_number: "(555) 987-6543",
+      location: "Los Angeles, CA",
+      role: "Team Leader",
+      skills: ["leadership", "communication", "event planning"],
+      availability: ["weekdays", "afternoons"],
+      active: true
+    },
+    {
+      id: 3,
+      username: "mjohnson",
+      first_name: "Michael",
+      last_name: "Johnson",
+      email: "michael.j@example.com",
+      phone_number: "(555) 345-6789",
+      location: "Chicago, IL",
+      role: "Technical Support",
+      skills: ["IT", "audio/visual", "photography"],
+      availability: ["weekends"],
+      active: true
+    }
+  ];
 });
 
-// Create mock data that will replace the Jest mocks
-const mockVolunteersData = [
-  {
-    username: "jsmith",
-    first_name: "John",
-    last_name: "Smith",
-    email: "john.smith@example.com",
-    phone_number: "555-123-4567",
-    location: "New York",
-    role: "volunteer"
-  },
-  {
-    username: "nohistory",
-    first_name: "No",
-    last_name: "History",
-    email: "no.history@example.com",
-    phone_number: "555-000-0000",
-    location: "Nowhere",
-    role: "volunteer"
-  }
-];
-
-const mockVolunteerHistoryData = [
-  {
-    id: 1,
-    volunteerName: "John Smith",
-    eventName: "Community Garden Cleanup",
-    eventDate: "2025-03-01",
-    status: "Checked In",
-    hoursServed: 3,
-    description: "Help clean up the community garden",
-    maxVolunteers: 10
-  },
-  {
-    id: 2,
-    volunteerName: "Sarah Johnson",
-    eventName: "Food Bank Distribution",
-    eventDate: "2025-03-15",
-    status: "Pending",
-    hoursServed: 0,
-    description: "Distribute food to community members",
-    maxVolunteers: 15
-  }
-];
-
-// Create a module with mocked implementations
-const volunteerMatchRoutes = (function() {
-  const express = require('express');
-  const router = express.Router();
-  
-  // Authentication middleware
-  const authenticateToken = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    const token = authHeader && authHeader.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ error: 'Authentication required' });
+// Mock the volunteerHistoryData module
+jest.mock('./volunteerHistoryData', () => {
+  return [
+    {
+      id: 1,
+      volunteerName: "John Doe",
+      eventName: "Community Food Drive",
+      eventDate: "2025-02-15",
+      status: "Checked In",
+      hoursServed: 4,
+      description: "Help collect and distribute food packages",
+      maxVolunteers: 20
+    },
+    {
+      id: 2,
+      volunteerName: "Jane Smith",
+      eventName: "Tech Workshop for Seniors",
+      eventDate: "2025-02-20",
+      status: "Pending",
+      hoursServed: 0,
+      description: "Teach basic computer skills",
+      maxVolunteers: 15
+    },
+    {
+      id: 3,
+      volunteerName: "Michael Johnson",
+      eventName: "Community Food Drive",
+      eventDate: "2025-02-15",
+      status: "Completed",
+      hoursServed: 5,
+      description: "Help collect and distribute food packages",
+      maxVolunteers: 20
     }
+  ];
+});
 
-    req.user = { role: 'admin' }; 
-    next();
-  };
+// Import the routes AFTER mocking the dependencies
+const volunteerMatchRoutes = require('./VolunteerMatchRoutes');
 
-  // Middleware to verify admin access
-  const verifyAdminAccess = (req, res, next) => {
-    if (req.user && req.user.role === 'admin') {
-      next();
-    } else {
-      res.status(403).json({ error: 'Access denied. Admin privileges required.' });
-    }
-  };
-
-  // Volunteers search endpoint
-  router.get('/volunteers/search', authenticateToken, verifyAdminAccess, (req, res) => {
-    try {
-      const { type, term } = req.query;
-      
-      if (!type || !term) {
-        return res.status(400).json({ error: 'Search type and term are required' });
-      }
-
-      let volunteer;
-      
-      // Find volunteer based on search type
-      switch (type) {
-        case 'username':
-          volunteer = mockVolunteersData.find(v => v.username === term);
-          break;
-        case 'email':
-          volunteer = mockVolunteersData.find(v => v.email === term);
-          break;
-        case 'phone':
-          volunteer = mockVolunteersData.find(v => v.phone_number === term);
-          break;
-        case 'name':
-          volunteer = mockVolunteersData.find(v => 
-            v.first_name.toLowerCase().includes(term.toLowerCase()) || 
-            v.last_name.toLowerCase().includes(term.toLowerCase())
-          );
-          break;
-        default:
-          return res.status(400).json({ error: 'Invalid search type' });
-      }
-
-      if (!volunteer) {
-        return res.status(404).json({ error: 'Volunteer not found' });
-      }
-
-      res.json(volunteer);
-    } catch (error) {
-      console.error('Error searching for volunteer:', error);
-      res.status(500).json({ error: 'Server error while searching for volunteer' });
-    }
-  });
-
-  // Volunteer history endpoint
-  router.get('/volunteers/:username/history', authenticateToken, verifyAdminAccess, (req, res) => {
-    try {
-      const { username } = req.params;
-      
-      // Find the volunteer
-      const volunteer = mockVolunteersData.find(v => v.username === username);
-      
-      if (!volunteer) {
-        return res.status(404).json({ error: 'Volunteer not found' });
-      }
-      
-      // Find history records for this volunteer
-      const history = mockVolunteerHistoryData
-        .filter(record => record.volunteerName === `${volunteer.first_name} ${volunteer.last_name}`)
-        .map(record => ({
-          eventName: record.eventName,
-          eventDate: record.eventDate,
-          checkin: record.status === 'Checked In'
-        }))
-        .sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate));
-      
-      res.json(history);
-    } catch (error) {
-      console.error('Error fetching volunteer history:', error);
-      res.status(500).json({ error: 'Server error while fetching volunteer history' });
-    }
-  });
-
-  // Events endpoint
-  router.get('/events', authenticateToken, verifyAdminAccess, (req, res) => {
-    try {
-      const events = mockVolunteerHistoryData.map(record => ({
-        name: record.eventName,
-        date: record.eventDate,
-        description: record.description,
-        maxVolunteers: record.maxVolunteers
-      }));
-      
-      res.json(events);
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      res.status(500).json({ error: 'Server error while fetching events' });
-    }
-  });
-
-  // Match volunteer to event endpoint
-  router.post('/match', authenticateToken, verifyAdminAccess, (req, res) => {
-    try {
-      const { username, eventName } = req.body;
-      
-      if (!username || !eventName) {
-        return res.status(400).json({ error: 'Username and event name are required' });
-      }
-      
-      // Verify volunteer exists
-      const volunteer = mockVolunteersData.find(v => v.username === username);
-      if (!volunteer) {
-        return res.status(404).json({ error: 'Volunteer not found' });
-      }
-      
-      // Verify event exists
-      const event = mockVolunteerHistoryData.find(r => r.eventName === eventName);
-      if (!event) {
-        return res.status(404).json({ error: 'Event not found' });
-      }
-      
-      // Check if volunteer is already assigned to this event
-      const volunteerFullName = `${volunteer.first_name} ${volunteer.last_name}`;
-      const existingMatch = mockVolunteerHistoryData.find(
-        r => r.volunteerName === volunteerFullName && r.eventName === eventName
-      );
-      
-      if (existingMatch) {
-        return res.status(400).json({ error: 'Volunteer is already matched to this event' });
-      }
-      
-      // Create new record
-      const newId = Math.max(...mockVolunteerHistoryData.map(r => r.id)) + 1;
-      
-      const newRecord = {
-        id: newId,
-        volunteerName: volunteerFullName,
-        eventName: eventName,
-        eventDate: event.eventDate,
-        status: 'Pending',
-        hoursServed: 0,
-        description: `Matched to ${eventName}`,
-        maxVolunteers: event.maxVolunteers
-      };
-      
-      mockVolunteerHistoryData.push(newRecord);
-      
-      res.status(201).json(newRecord);
-    } catch (error) {
-      console.error('Error matching volunteer to event:', error);
-      res.status(500).json({ error: 'Server error while matching volunteer to event' });
-    }
-  });
-
-  // Update volunteer status endpoint
-  router.put('/status/:id', authenticateToken, verifyAdminAccess, (req, res) => {
-    try {
-      const recordId = parseInt(req.params.id, 10);
-      const { status, hoursServed } = req.body;
-      
-      if (!status) {
-        return res.status(400).json({ error: 'Status is required' });
-      }
-      
-      // Find the record
-      const recordIndex = mockVolunteerHistoryData.findIndex(r => r.id === recordId);
-      if (recordIndex === -1) {
-        return res.status(404).json({ error: 'Record not found' });
-      }
-      
-      // Update the record
-      mockVolunteerHistoryData[recordIndex] = {
-        ...mockVolunteerHistoryData[recordIndex],
-        status: status,
-        hoursServed: hoursServed || mockVolunteerHistoryData[recordIndex].hoursServed
-      };
-      
-      res.json(mockVolunteerHistoryData[recordIndex]);
-    } catch (error) {
-      console.error('Error updating volunteer status:', error);
-      res.status(500).json({ error: 'Server error while updating volunteer status' });
-    }
-  });
-
-  return router;
-})();
-
-// Create the Express app
 const app = express();
 app.use(express.json());
 app.use('/pages/match-volunteers', volunteerMatchRoutes);
 
-// Mock authentication middleware for testing
-// This adds authentication token to all requests
-const addAuthHeader = (request) => {
-  return request.set('Authorization', 'Bearer test-token');
-};
+// Mock authorization headers
+const adminAuthHeader = { Authorization: 'Bearer test-admin-token' };
+const userAuthHeader = { Authorization: 'Bearer test-user-token' };
 
-// Test volunteer search functionality
-async function testVolunteerSearch() {
-  console.log('\n--- Volunteer Search API Tests ---');
-  
-  // Test find by username
-  let res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/search?type=username&term=jsmith')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(res.body.username, 'jsmith', 'Should return correct username');
-  assert.equal(res.body.first_name, 'John', 'Should return correct first name');
-  assert.equal(res.body.last_name, 'Smith', 'Should return correct last name');
-  console.log('✓ Should return volunteer when found by username');
-  
-  // Test find by email
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/search?type=email&term=john.smith@example.com')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(res.body.username, 'jsmith', 'Should return correct username');
-  console.log('✓ Should return volunteer when found by email');
-  
-  // Test find by phone
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/search?type=phone&term=555-123-4567')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(res.body.username, 'jsmith', 'Should return correct username');
-  console.log('✓ Should return volunteer when found by phone');
-  
-  // Test find by name
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/search?type=name&term=john')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(res.body.first_name, 'John', 'Should return correct first name');
-  assert.equal(res.body.last_name, 'Smith', 'Should return correct last name');
-  console.log('✓ Should return volunteer when found by name');
-  
-  // Test volunteer not found
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/search?type=username&term=nonexistent')
-  );
-  assert.equal(res.statusCode, 404, 'Should return 404 status code');
-  assert.equal(res.body.error, 'Volunteer not found', 'Should return correct error message');
-  console.log('✓ Should return 404 when volunteer is not found');
-  
-  // Test invalid search type
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/search?type=invalid&term=jsmith')
-  );
-  assert.equal(res.statusCode, 400, 'Should return 400 status code');
-  assert.equal(res.body.error, 'Invalid search type', 'Should return correct error message');
-  console.log('✓ Should return 400 when search type is invalid');
-  
-  // Test authentication required
-  res = await request(app).get('/pages/match-volunteers/volunteers/search?type=username&term=jsmith');
-  assert.equal(res.statusCode, 401, 'Should return 401 status code');
-  assert.equal(res.body.error, 'Authentication required', 'Should return correct error message');
-  console.log('✓ Should return 401 when not authenticated');
-}
+// Create test app for error testing
+const testApp = express();
+testApp.use(express.json());
+testApp.use((req, res, next) => {
+  // Create a spy on res.json to simulate errors
+  const originalJson = res.json;
+  res.json = function(...args) {
+    if (req.query.triggerError === 'true') {
+      throw new Error('Simulated server error');
+    }
+    return originalJson.apply(this, args);
+  };
+  next();
+});
+testApp.use('/pages/match-volunteers', volunteerMatchRoutes);
 
-// Test volunteer history functionality
-async function testVolunteerHistory() {
-  console.log('\n--- Volunteer History API Tests ---');
-  
-  // Test volunteer with history
-  let res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/jsmith/history')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(Array.isArray(res.body), true, 'Should return an array');
-  assert.equal(res.body.length, 1, 'Should return correct number of records');
-  assert.equal(res.body[0].eventName, 'Community Garden Cleanup', 'Should return correct event name');
-  assert.equal(res.body[0].checkin, true, 'Should return correct checkin status');
-  console.log('✓ Should return history for a volunteer');
-  
-  // Test volunteer with no history
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/nohistory/history')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(Array.isArray(res.body), true, 'Should return an array');
-  assert.equal(res.body.length, 0, 'Should return empty array');
-  console.log('✓ Should return empty array if volunteer has no history');
-  
-  // Test non-existent volunteer
-  res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/volunteers/nonexistent/history')
-  );
-  assert.equal(res.statusCode, 404, 'Should return 404 status code');
-  assert.equal(res.body.error, 'Volunteer not found', 'Should return correct error message');
-  console.log('✓ Should return 404 for non-existent volunteer');
-  
-  // Test authentication required
-  res = await request(app).get('/pages/match-volunteers/volunteers/jsmith/history');
-  assert.equal(res.statusCode, 401, 'Should return 401 status code');
-  assert.equal(res.body.error, 'Authentication required', 'Should return correct error message');
-  console.log('✓ Should return 401 when not authenticated');
-}
-
-// Test events listing functionality
-async function testEventsListing() {
-  console.log('\n--- Events Listing API Tests ---');
-  
-  // Test get events
-  let res = await addAuthHeader(
-    request(app).get('/pages/match-volunteers/events')
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(Array.isArray(res.body), true, 'Should return an array');
-  assert.equal(res.body.length, 2, 'Should return correct number of events');
-  assert.notEqual(res.body[0].name, undefined, 'Event should have a name property');
-  assert.notEqual(res.body[0].date, undefined, 'Event should have a date property');
-  console.log('✓ Should return a list of events');
-  
-  // Test authentication required
-  res = await request(app).get('/pages/match-volunteers/events');
-  assert.equal(res.statusCode, 401, 'Should return 401 status code');
-  assert.equal(res.body.error, 'Authentication required', 'Should return correct error message');
-  console.log('✓ Should return 401 when not authenticated');
-}
-
-// Test volunteer matching functionality
-async function testVolunteerMatching() {
-  console.log('\n--- Volunteer Matching API Tests ---');
-  
-  // Test match volunteer to event
-  let res = await addAuthHeader(
-    request(app)
-      .post('/pages/match-volunteers/match')
-      .send({ username: 'jsmith', eventName: 'Food Bank Distribution' })
-  );
-  assert.equal(res.statusCode, 201, 'Should return 201 status code');
-  assert.equal(res.body.volunteerName, 'John Smith', 'Should return correct volunteer name');
-  assert.equal(res.body.eventName, 'Food Bank Distribution', 'Should return correct event name');
-  assert.equal(res.body.status, 'Pending', 'Should return correct status');
-  console.log('✓ Should match a volunteer to an event');
-  
-  // Test volunteer already matched
-  res = await addAuthHeader(
-    request(app)
-      .post('/pages/match-volunteers/match')
-      .send({ username: 'jsmith', eventName: 'Community Garden Cleanup' })
-  );
-  assert.equal(res.statusCode, 400, 'Should return 400 status code');
-  assert.equal(res.body.error, 'Volunteer is already matched to this event', 'Should return correct error message');
-  console.log('✓ Should return 400 when matching a volunteer to an event they are already matched to');
-  
-  // Test non-existent volunteer
-  res = await addAuthHeader(
-    request(app)
-      .post('/pages/match-volunteers/match')
-      .send({ username: 'nonexistent', eventName: 'Community Garden Cleanup' })
-  );
-  assert.equal(res.statusCode, 404, 'Should return 404 status code');
-  assert.equal(res.body.error, 'Volunteer not found', 'Should return correct error message');
-  console.log('✓ Should return 404 when volunteer does not exist');
-  
-  // Test non-existent event
-  res = await addAuthHeader(
-    request(app)
-      .post('/pages/match-volunteers/match')
-      .send({ username: 'jsmith', eventName: 'Nonexistent Event' })
-  );
-  assert.equal(res.statusCode, 404, 'Should return 404 status code');
-  assert.equal(res.body.error, 'Event not found', 'Should return correct error message');
-  console.log('✓ Should return 404 when event does not exist');
-  
-  // Test missing parameters
-  res = await addAuthHeader(
-    request(app)
-      .post('/pages/match-volunteers/match')
-      .send({})
-  );
-  assert.equal(res.statusCode, 400, 'Should return 400 status code');
-  assert.equal(res.body.error, 'Username and event name are required', 'Should return correct error message');
-  console.log('✓ Should return 400 when username and event name are missing');
-  
-  // Test authentication required
-  res = await request(app)
-    .post('/pages/match-volunteers/match')
-    .send({ username: 'jsmith', eventName: 'Food Bank Distribution' });
-  assert.equal(res.statusCode, 401, 'Should return 401 status code');
-  assert.equal(res.body.error, 'Authentication required', 'Should return correct error message');
-  console.log('✓ Should return 401 when not authenticated');
-}
-
-// Test volunteer status update functionality
-async function testVolunteerStatusUpdate() {
-  console.log('\n--- Volunteer Status Update API Tests ---');
-  
-  // Test update volunteer status
-  let res = await addAuthHeader(
-    request(app)
-      .put('/pages/match-volunteers/status/1')
-      .send({ status: 'Checked In', hoursServed: 4 })
-  );
-  assert.equal(res.statusCode, 200, 'Should return 200 status code');
-  assert.equal(res.body.status, 'Checked In', 'Should return correct updated status');
-  assert.equal(res.body.hoursServed, 4, 'Should return correct updated hours served');
-  console.log('✓ Should update a volunteer status');
-  
-  // Test non-existent record
-  res = await addAuthHeader(
-    request(app)
-      .put('/pages/match-volunteers/status/9999')
-      .send({ status: 'Checked In', hoursServed: 3 })
-  );
-  assert.equal(res.statusCode, 404, 'Should return 404 status code');
-  assert.equal(res.body.error, 'Record not found', 'Should return correct error message');
-  console.log('✓ Should return 404 for non-existent record');
-  
-  // Test missing status
-  res = await addAuthHeader(
-    request(app)
-      .put('/pages/match-volunteers/status/1')
-      .send({ hoursServed: 3 })
-  );
-  assert.equal(res.statusCode, 400, 'Should return 400 status code');
-  assert.equal(res.body.error, 'Status is required', 'Should return correct error message');
-  console.log('✓ Should return 400 when status is missing');
-  
-  // Test authentication required
-  res = await request(app)
-    .put('/pages/match-volunteers/status/1')
-    .send({ status: 'Checked In', hoursServed: 4 });
-  assert.equal(res.statusCode, 401, 'Should return 401 status code');
-  assert.equal(res.body.error, 'Authentication required', 'Should return correct error message');
-  console.log('✓ Should return 401 when not authenticated');
-}
-
-// Run all tests
-async function runTests() {
-  try {
-    console.log('\n=== VOLUNTEER API TESTS ===');
-    await testVolunteerSearch();
-    await testVolunteerHistory();
-    await testEventsListing();
-    await testVolunteerMatching();
-    await testVolunteerStatusUpdate();
-    console.log('\n=== ALL TESTS PASSED ===');
-  } catch (error) {
-    console.error('\n❌ TEST FAILED:', error.message);
-    console.error(error);
+// Create test app for non-admin testing
+const nonAdminApp = express();
+nonAdminApp.use(express.json());
+nonAdminApp.use((req, res, next) => {
+  // Override the authenticateToken middleware for this app
+  if (req.headers['authorization'] === 'Bearer test-user-token') {
+    req.user = { role: 'user' }; // Non-admin user
+    next();
+  } else {
+    next();
   }
-}
+});
+nonAdminApp.use('/pages/match-volunteers', volunteerMatchRoutes);
 
-// Export the test runner function
-export default runTests;
+describe('Volunteer Match Routes', () => {
+  // Test volunteer search functionality
+  describe('Volunteer Search', () => {
+    it('GET /volunteers/search should find a volunteer by username when user is admin', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=username&term=jdoe')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(200);
+      expect(res.body.username).toBe('jdoe');
+      expect(res.body.first_name).toBe('John');
+    });
 
-// Run tests automatically when the file is executed
-// This will be executed during the Jest test run
-beforeAll(async () => {
-  await runTests();
+    it('GET /volunteers/search should return 401 when user is not authenticated', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=username&term=jdoe');
+      
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error).toBe('Authentication required');
+    });
+
+    it('GET /volunteers/search should return 403 when user is not admin', async () => {
+      const res = await request(nonAdminApp)
+        .get('/pages/match-volunteers/volunteers/search?type=username&term=jdoe')
+        .set(userAuthHeader);
+      
+      expect(res.statusCode).toBe(403);
+      expect(res.body.error).toContain('Admin privileges required');
+    });
+
+    it('GET /volunteers/search should return 400 when search parameters are missing', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Search type and term are required');
+    });
+
+    it('GET /volunteers/search should find a volunteer by email', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=email&term=john.doe@example.com')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(200);
+      expect(res.body.username).toBe('jdoe');
+    });
+
+    it('GET /volunteers/search should find a volunteer by phone', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=phone&term=(555) 123-4567')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(200);
+      expect(res.body.username).toBe('jdoe');
+    });
+
+    it('GET /volunteers/search should find a volunteer by name (partial match)', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=name&term=john')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(200);
+      expect(res.body.username).toBe('jdoe');
+    });
+
+    it('GET /volunteers/search should return 400 for invalid search type', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=invalid&term=test')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Invalid search type');
+    });
+
+    it('GET /volunteers/search should return 404 when volunteer is not found', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/search?type=username&term=nonexistent')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toBe('Volunteer not found');
+    });
+
+    it('GET /volunteers/search should handle server errors', async () => {
+      const res = await request(testApp)
+        .get('/pages/match-volunteers/volunteers/search?type=username&term=jdoe&triggerError=true')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toContain('Server error');
+    });
+  });
+
+  // Test volunteer history functionality
+  describe('Volunteer History', () => {
+    it('GET /volunteers/:username/history should return volunteer history when user is admin', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/jdoe/history')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('GET /volunteers/:username/history should return 401 when user is not authenticated', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/jdoe/history');
+      
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error).toBe('Authentication required');
+    });
+
+    it('GET /volunteers/:username/history should return 403 when user is not admin', async () => {
+      const res = await request(nonAdminApp)
+        .get('/pages/match-volunteers/volunteers/jdoe/history')
+        .set(userAuthHeader);
+      
+      expect(res.statusCode).toBe(403);
+      expect(res.body.error).toContain('Admin privileges required');
+    });
+
+    it('GET /volunteers/:username/history should return 404 when volunteer is not found', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/volunteers/nonexistent/history')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toBe('Volunteer not found');
+    });
+
+    it('GET /volunteers/:username/history should handle server errors', async () => {
+      const res = await request(testApp)
+        .get('/pages/match-volunteers/volunteers/jdoe/history?triggerError=true')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toContain('Server error');
+    });
+  });
+
+  // Test events listing functionality
+  describe('Events Listing', () => {
+    it('GET /events should return events list when user is admin', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/events')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('GET /events should return 401 when user is not authenticated', async () => {
+      const res = await request(app)
+        .get('/pages/match-volunteers/events');
+      
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error).toBe('Authentication required');
+    });
+
+    it('GET /events should return 403 when user is not admin', async () => {
+      const res = await request(nonAdminApp)
+        .get('/pages/match-volunteers/events')
+        .set(userAuthHeader);
+      
+      expect(res.statusCode).toBe(403);
+      expect(res.body.error).toContain('Admin privileges required');
+    });
+
+    it('GET /events should handle server errors', async () => {
+      const res = await request(testApp)
+        .get('/pages/match-volunteers/events?triggerError=true')
+        .set(adminAuthHeader);
+      
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toContain('Server error');
+    });
+  });
+
+  // Test volunteer matching functionality
+  describe('Volunteer Matching', () => {
+    it('POST /match should match a volunteer to an event when user is admin', async () => {
+      const matchData = {
+        username: "jdoe",
+        eventName: "Tech Workshop for Seniors"
+      };
+      
+      const res = await request(app)
+        .post('/pages/match-volunteers/match')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(201);
+      expect(res.body.volunteerName).toBe('John Doe');
+      expect(res.body.eventName).toBe('Tech Workshop for Seniors');
+    });
+
+    it('POST /match should return 401 when user is not authenticated', async () => {
+      const matchData = {
+        username: "jdoe",
+        eventName: "Tech Workshop for Seniors"
+      };
+      
+      const res = await request(app)
+        .post('/pages/match-volunteers/match')
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error).toBe('Authentication required');
+    });
+
+    it('POST /match should return 403 when user is not admin', async () => {
+      const matchData = {
+        username: "jdoe",
+        eventName: "Tech Workshop for Seniors"
+      };
+      
+      const res = await request(nonAdminApp)
+        .post('/pages/match-volunteers/match')
+        .set(userAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(403);
+      expect(res.body.error).toContain('Admin privileges required');
+    });
+
+    it('POST /match should return 400 when required fields are missing', async () => {
+      const matchData = {
+        username: "jdoe"
+        // Missing eventName
+      };
+      
+      const res = await request(app)
+        .post('/pages/match-volunteers/match')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Username and event name are required');
+    });
+
+    it('POST /match should return 404 when volunteer is not found', async () => {
+      const matchData = {
+        username: "nonexistent",
+        eventName: "Community Food Drive"
+      };
+      
+      const res = await request(app)
+        .post('/pages/match-volunteers/match')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toBe('Volunteer not found');
+    });
+
+    it('POST /match should return 404 when event is not found', async () => {
+      const matchData = {
+        username: "jdoe",
+        eventName: "Nonexistent Event"
+      };
+      
+      const res = await request(app)
+        .post('/pages/match-volunteers/match')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toBe('Event not found');
+    });
+
+    it('POST /match should return 400 when volunteer is already matched to the event', async () => {
+      // First match attempt
+      const matchData = {
+        username: "jdoe",
+        eventName: "Community Food Drive"
+      };
+      
+      // First try to match
+      await request(app)
+        .post('/pages/match-volunteers/match')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      // Second attempt should fail
+      const res = await request(app)
+        .post('/pages/match-volunteers/match')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Volunteer is already matched to this event');
+    });
+
+    it('POST /match should handle server errors', async () => {
+      const matchData = {
+        username: "jdoe",
+        eventName: "Community Food Drive"
+      };
+      
+      const res = await request(testApp)
+        .post('/pages/match-volunteers/match?triggerError=true')
+        .set(adminAuthHeader)
+        .send(matchData);
+      
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toContain('Server error');
+    });
+  });
+
+  // Test status update functionality
+  describe('Status Updates', () => {
+    it('PUT /status/:id should update volunteer status when user is admin', async () => {
+      const updateData = {
+        status: "Checked In",
+        hoursServed: 4
+      };
+      
+      const res = await request(app)
+        .put('/pages/match-volunteers/status/1')
+        .set(adminAuthHeader)
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe('Checked In');
+      expect(res.body.hoursServed).toBe(4);
+    });
+
+    it('PUT /status/:id should return 401 when user is not authenticated', async () => {
+      const updateData = {
+        status: "Checked In"
+      };
+      
+      const res = await request(app)
+        .put('/pages/match-volunteers/status/1')
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(401);
+      expect(res.body.error).toBe('Authentication required');
+    });
+
+    it('PUT /status/:id should return 403 when user is not admin', async () => {
+      const updateData = {
+        status: "Checked In"
+      };
+      
+      const res = await request(nonAdminApp)
+        .put('/pages/match-volunteers/status/1')
+        .set(userAuthHeader)
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(403);
+      expect(res.body.error).toContain('Admin privileges required');
+    });
+
+    it('PUT /status/:id should return 400 when status is missing', async () => {
+      const updateData = {
+        hoursServed: 4
+        // Missing status
+      };
+      
+      const res = await request(app)
+        .put('/pages/match-volunteers/status/1')
+        .set(adminAuthHeader)
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(400);
+      expect(res.body.error).toBe('Status is required');
+    });
+
+    it('PUT /status/:id should return 404 when record is not found', async () => {
+      const updateData = {
+        status: "Checked In"
+      };
+      
+      const res = await request(app)
+        .put('/pages/match-volunteers/status/999')
+        .set(adminAuthHeader)
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(404);
+      expect(res.body.error).toBe('Record not found');
+    });
+
+    it('PUT /status/:id should handle server errors', async () => {
+      const updateData = {
+        status: "Checked In"
+      };
+      
+      const res = await request(testApp)
+        .put('/pages/match-volunteers/status/1?triggerError=true')
+        .set(adminAuthHeader)
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(500);
+      expect(res.body.error).toContain('Server error');
+    });
+
+    it('PUT /status/:id should update status without changing hours if not provided', async () => {
+      // First set initial values
+      await request(app)
+        .put('/pages/match-volunteers/status/1')
+        .set(adminAuthHeader)
+        .send({
+          status: "Pending",
+          hoursServed: 2
+        });
+      
+      // Then update only status
+      const updateData = {
+        status: "Checked In"
+        // No hoursServed
+      };
+      
+      const res = await request(app)
+        .put('/pages/match-volunteers/status/1')
+        .set(adminAuthHeader)
+        .send(updateData);
+      
+      expect(res.statusCode).toBe(200);
+      expect(res.body.status).toBe('Checked In');
+      expect(res.body.hoursServed).toBe(2); // Should keep original value
+    });
+
+    it('PUT /status/:id should handle invalid ID format', async () => {
+      const updateData = {
+        status: "Checked In"
+      };
+      
+      const res = await request(app)
+        .put('/pages/match-volunteers/status/not-a-number')
+        .set(adminAuthHeader)
+        .send(updateData);
+      
+      // This might return 404 or 500 depending on implementation
+      expect([404, 500].includes(res.statusCode)).toBe(true);
+    });
+  });
 });

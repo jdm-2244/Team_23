@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const eventsData = require('./eventsData'); // You'll need to create this file with sample data
+const eventsData = require('./eventManagementData'); 
 
 // Authentication middleware (reusing from volunteer routes)
 const authenticateToken = (req, res, next) => {
