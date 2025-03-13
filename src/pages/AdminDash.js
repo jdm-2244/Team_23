@@ -45,6 +45,9 @@ const AdminDash = () => {
         }}
       >
         <ListGroup variant="flush" className="w-100 text-center">
+        <ListGroup.Item className="bg-dark text-white border-0 py-2">
+            <Link to="/admin-dashboard" className="text-decoration-none text-white fs-6">🏠 Dashboard</Link>
+          </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
             <Link to="/admin-profile" className="text-decoration-none text-white fs-6">👤 Profile</Link>
           </ListGroup.Item>

@@ -1,7 +1,101 @@
 import React, { useState } from "react";
-import { Container, Navbar, Nav, Row, Col, Button, Card, Form } from "react-bootstrap";
+import { Container, Navbar, Nav, Row, Col, Button, Card, Form, ListGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
+// LeftSidebar Component for Navigation
+const LeftSidebar = () => {
+  const [showNotifications, setShowNotifications] = useState(false);
+  const notifications = [
+    { id: 1, message: "New event added in your area", time: "2 min ago" },
+    { id: 2, message: "Profile update successful", time: "1 hour ago" },
+    { id: 3, message: "New message from admin", time: "3 hours ago" }
+  ];
+
+  return (
+    <div
+      className="bg-dark text-white d-flex flex-column justify-content-between align-items-center rounded shadow-lg"
+      style={{
+        width: "200px",
+        minHeight: "250px",
+        position: "fixed",
+        left: "20px",
+        top: "120px",
+        padding: "20px",
+      }}
+    >
+      {/* Notification Bell */}
+      <div className="position-relative w-100 mb-3">
+        <button 
+          onClick={() => setShowNotifications(!showNotifications)}
+          className="bg-dark border-0 text-white p-2 w-100 d-flex align-items-center justify-content-center position-relative"
+          style={{ cursor: 'pointer' }}
+        >
+          🔔
+          <span 
+            className="position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center"
+            style={{ 
+              width: '20px', 
+              height: '20px', 
+              top: '0', 
+              right: '40px',
+              fontSize: '12px'
+            }}
+          >
+            {notifications.length}
+          </span>
+        </button>
+        {showNotifications && (
+          <div 
+            className="position-absolute bg-dark rounded shadow-lg"
+            style={{
+              width: '175px',
+              left: '0',
+              top: '100%',
+              zIndex: 1000
+            }}
+          >
+            {notifications.map(notification => (
+              <div 
+                key={notification.id} 
+                className="p-3 border-bottom border-secondary"
+                style={{ cursor: 'pointer' }}
+              >
+                <p className="mb-1 fs-6">{notification.message}</p>
+                <small className="text-muted">{notification.time}</small>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+      <ListGroup variant="flush" className="w-100 text-center">
+        <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+          <Link to="/dashboard" className="text-decoration-none text-white fs-6">🏠 Dashboard</Link>
+        </ListGroup.Item>
+        <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+          <Link to="/newuser" className="text-decoration-none text-white fs-6">👤 Profile</Link>
+        </ListGroup.Item>
+        <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+          <Link to="/eventsearch" className="text-decoration-none text-white fs-6">🔍 Event Search</Link>
+        </ListGroup.Item>
+        <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+          <Link to="/history" className="text-decoration-none text-white fs-6">📜 History</Link>
+        </ListGroup.Item>
+      </ListGroup>
+      <Button
+        variant="danger"
+        className="w-100 mt-3"
+        style={{
+          backgroundColor: "#dc3545",
+          border: "none",
+          padding: "10px 0",
+          fontSize: "16px",
+        }}
+      >
+        🚪 Log Out
+      </Button>
+    </div>
+  );
+};
 
 const EventSearch = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -67,8 +161,7 @@ const EventSearch = () => {
         display: "flex",
       }}
     >
-
-
+      <LeftSidebar />
       {/* Transparent Navbar */}
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">

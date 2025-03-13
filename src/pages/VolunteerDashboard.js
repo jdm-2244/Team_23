@@ -93,6 +93,9 @@ const VolunteerDashboard = () => {
         </div>
 
         <ListGroup variant="flush" className="w-100 text-center">
+        <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+            <Link to="/dashboard" className="text-decoration-none text-white fs-6">🏠 Dashboard</Link>
+          </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
             <Link to="/newuser" className="text-decoration-none text-white fs-6">👤 Profile</Link>
           </ListGroup.Item>
