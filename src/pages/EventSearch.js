@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { Container, Navbar, Nav, Row, Col, Button, Card, Form, ListGroup } from "react-bootstrap";
 import { Link } from "react-router-dom";
 
-// LeftSidebar Component for Navigation
 const LeftSidebar = () => {
   const [showNotifications, setShowNotifications] = useState(false);
   const notifications = [

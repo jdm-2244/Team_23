@@ -8,6 +8,7 @@ const loginRouter = require('./loginRoutes');
 const userProfileRouter = require('./userProfileRoutes');
 const volunteerMatchRouter = require('./VolunteerMatchRoutes');
 const eventRouter = require('./eventManagementRoutes');
+console.log("SendGrid API Key:", process.env.SENDGRID_API_KEY ? "Loaded" : "Not Loaded");
 
 const app = express();
 
@@ -17,7 +18,7 @@ app.use(express.json());
 // API Routes
 app.use('/api/volunteer-history', volunteerHistoryRouter);
 app.use('/api/notifications', notificationRouter);
-app.use('/api/login', loginRouter);
+app.use('/api', loginRouter);
 app.use('/api/user-profiles', userProfileRouter);
 app.use('/api/match-volunteers', volunteerMatchRouter);
 app.use('/api/event-management', eventRouter);

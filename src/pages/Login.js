@@ -1,10 +1,51 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Container, Row, Col, Form, Button, Navbar, Nav } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
+
+  // State for form inputs and potential error messages
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+
+  // Handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError(''); // Clear any previous errors
+
+    try {
+      const response = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        // The back end expects "username" and "password", so we'll send email as "username"
+        body: JSON.stringify({
+          username: email,
+          password: password,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        // Login success: decide where to navigate based on role
+        alert('Login successful!');
+        if (data.user && data.user.role === 'admin') {
+          navigate('/admin-dashboard');
+        } else {
+          navigate('/dashboard');
+        }
+      } else {
+        // Show error message returned from the server
+        setError(data.error || 'Login failed. Please try again.');
+      }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('Something went wrong. Please try again.');
+    }
+  };
 
   return (
     <Container
@@ -18,20 +59,42 @@ const Login = () => {
       {/* Navbar */}
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">
-          <Navbar.Brand className="text-white fw-bold fs-2" style={{ textShadow: "2px 2px 4px rgba(9, 7, 3, 2)" }}> ImpactNow </Navbar.Brand>
+          <Navbar.Brand className="text-white fw-bold fs-2" style={{ textShadow: "2px 2px 4px rgba(9, 7, 3, 2)" }}>
+            ImpactNow
+          </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
             <Nav className="fs-5 d-flex gap-3">
-              <Nav.Link as={Link} to="/" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+              <Nav.Link
+                as={Link}
+                to="/"
+                className="text-white px-4 py-2 rounded-pill border border-white"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+              >
                 Home
               </Nav.Link>
-              <Nav.Link as={Link} to="/faq" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+              <Nav.Link
+                as={Link}
+                to="/faq"
+                className="text-white px-4 py-2 rounded-pill border border-white"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+              >
                 FAQ
               </Nav.Link>
-              <Nav.Link as={Link} to="/about" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+              <Nav.Link
+                as={Link}
+                to="/about"
+                className="text-white px-4 py-2 rounded-pill border border-white"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+              >
                 About Us
               </Nav.Link>
-              <Nav.Link as={Link} to="/contact" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+              <Nav.Link
+                as={Link}
+                to="/contact"
+                className="text-white px-4 py-2 rounded-pill border border-white"
+                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
+              >
                 Contact Us
               </Nav.Link>
             </Nav>
@@ -59,7 +122,6 @@ const Login = () => {
                 left: 0,
               }}
             ></div>
-            
             <div
               className="position-absolute text-white text-center p-4"
               style={{
@@ -77,30 +139,53 @@ const Login = () => {
           <Col md={6} className="p-5 bg-white">
             <h2 className="mb-3 text-center fw-bold">Welcome Back</h2>
             <p className="text-center text-muted">Please sign in to your account</p>
+
+            {/* Display error message if any */}
+            {error && (
+              <div className="alert alert-danger text-center" role="alert">
+                {error}
+              </div>
+            )}
             
-            <Form>
+            <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3">
                 <Form.Label>Email Address</Form.Label>
-                <Form.Control type="email" placeholder="Enter your email" />
+                <Form.Control
+                  type="email"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                />
               </Form.Group>
 
               <Form.Group className="mb-3">
                 <Form.Label>Password</Form.Label>
-                <Form.Control type="password" placeholder="Enter your password" />
+                <Form.Control
+                  type="password"
+                  placeholder="Enter your password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
               </Form.Group>
 
               <Form.Group className="d-flex justify-content-between mb-3">
                 <Form.Check type="checkbox" label="Remember me" />
-                <a href="#" className="text-decoration-none">Forgot password?</a>
+                <a href="#" className="text-decoration-none">
+                  Forgot password?
+                </a>
               </Form.Group>
 
-              <Button variant="primary" className="w-100">Sign In</Button>
+              <Button variant="primary" type="submit" className="w-100">
+                Sign In
+              </Button>
             </Form>
 
             <p className="mt-3 text-center">
               Don't have an account?{' '}
-              <span 
-                onClick={() => navigate('/signup')} 
+              <span
+                onClick={() => navigate('/signup')}
                 style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
               >
                 Sign up now
