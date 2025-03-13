@@ -49,7 +49,7 @@ const AdminDash = () => {
             <Link to="/admin-dashboard" className="text-decoration-none text-white fs-6">🏠 Dashboard</Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/admin-profile" className="text-decoration-none text-white fs-6">👤 Profile</Link>
+            <Link to="/profile-admin" className="text-decoration-none text-white fs-6">👤 Profile</Link>
           </ListGroup.Item>
           <ListGroup.Item className="bg-dark text-white border-0 py-2">
             <Link to="/event-management" className="text-decoration-none text-white fs-6">

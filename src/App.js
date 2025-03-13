@@ -16,6 +16,10 @@ import Volunteerhistory from "./pages/Volunteerhistory";
 import EventManagement from "./pages/EventManagement";
 import "bootstrap/dist/css/bootstrap.min.css";
 import Notification from "./pages/Notification";
+import ProfileVolunteer from "./pages/ProfileVolunteer";
+import ProfileAdmin from "./pages/ProfileAdmin";
+
+
 
 function App() {
   return (
@@ -36,6 +40,8 @@ function App() {
         <Route path="/event-management" element={<EventManagement />} />
         <Route path="/eventsearch" element={<EventSearch />} />
         <Route path="/notifications" element={<Notification />} />
+        <Route path="/profile-volunteer" element={<ProfileVolunteer />} />
+        <Route path="/profile-admin" element={<ProfileAdmin />} />
       </Routes>
     </Router>
   );
