@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Container, Navbar, Nav, Row, Col, Button, Card, Form } from "react-bootstrap";
+import { Container, Navbar, Nav, Row, Col, Button, Card, Form, InputGroup, Spinner } from "react-bootstrap";
 import { Link } from "react-router-dom";
 import Sidebar from './Admin_sidebar';
 
@@ -65,9 +65,7 @@ const Notification = () => {
       }
 
       const data = await response.json();
-    
       alert(data.message);
-
       setMessage("");
 
     } catch (err) {
@@ -76,129 +74,108 @@ const Notification = () => {
   };
 
   return (
-    <Container
-      fluid
-      className="p-0"
-      style={{
-        background: "linear-gradient(to right, #6a11cb, #2575fc)",
-        minHeight: "100vh",
-        display: "flex",
-      }}
-    >
+    <Container fluid className="p-0 d-flex" style={{ minHeight: "100vh", background: "linear-gradient(to right, #6a11cb, #2575fc)" }}>
       <Sidebar />
-
+      <Container style={{ marginLeft: "250px", padding: "80px 20px" }}>
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">
-          <Navbar.Brand className="text-white fw-bold fs-2">ImpactNow</Navbar.Brand>
+          <Navbar.Brand className="text-white fw-bold fs-2" style={{ textShadow: "2px 2px 4px rgba(9, 7, 3, 2)" }}> ImpactNow </Navbar.Brand>
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-            <Nav className="fs-5">
-              <Nav.Link as={Link} to="/" className="text-white">Home</Nav.Link>
-              <Nav.Link as={Link} to="/faq" className="text-white">FAQ</Nav.Link>
-              <Nav.Link as={Link} to="/about" className="text-white">About Us</Nav.Link>
-              <Nav.Link as={Link} to="/contact" className="text-white">Contact Us</Nav.Link>
+            <Nav className="fs-5 d-flex gap-3">
+              <Nav.Link as={Link} to="/" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                Home
+              </Nav.Link>
+              <Nav.Link as={Link} to="/faq" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                FAQ
+              </Nav.Link>
+              <Nav.Link as={Link} to="/about" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                About Us
+              </Nav.Link>
+              <Nav.Link as={Link} to="/contact" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
+                Contact Us
+              </Nav.Link>
             </Nav>
           </Navbar.Collapse>
         </Container>
       </Navbar>
-
-      <Container style={{ marginLeft: "250px", padding: "100px" }}>
-        <Row className="mb-4">
-          <Col>
-            <h2 className="text-white mb-4">Send Notifications</h2>
-            <Card className="shadow-lg">
-              <Card.Body>
-                <Form onSubmit={handleSearch}>
-                  <Row>
-                    <Col md={4}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Search By</Form.Label>
-                        <Form.Select
-                          value={searchType}
-                          onChange={(e) => setSearchType(e.target.value)}
-                        >
-                          <option value="username">Username</option>
-                          <option value="email">Email</option>
-                          <option value="phone">Phone Number</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={8}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Search Term</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter search term..."
-                          value={searchTerm}
-                          onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    className="w-100"
-                    disabled={loading}
-                    style={{ backgroundColor: "#2575fc", border: "none" }}
-                  >
-                    {loading ? 'Searching...' : 'Search Volunteer'}
-                  </Button>
-                </Form>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+        <h2 className="text-white mb-4 text-center">📢 Send Notifications</h2>
+        <Card className="shadow-lg p-4" style={{ borderRadius: "15px" }}>
+          <Form onSubmit={handleSearch}>
+            <Row className="mb-3">
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Search By</Form.Label>
+                  <Form.Select value={searchType} onChange={(e) => setSearchType(e.target.value)}>
+                    <option value="username">Username</option>
+                    <option value="email">Email</option>
+                    <option value="phone">Phone Number</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={8}>
+                <Form.Group>
+                  <Form.Label>Search Term</Form.Label>
+                  <InputGroup>
+                    <Form.Control
+                      type="text"
+                      placeholder="Enter search term..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                    <Button type="submit" variant="primary" disabled={loading}>
+                      {loading ? <Spinner animation="border" size="sm" /> : "🔍"}
+                    </Button>
+                  </InputGroup>
+                </Form.Group>
+              </Col>
+            </Row>
+          </Form>
+        </Card>
 
         {searchResults && (
-          <Row>
-            <Col>
-              <Card className="shadow-lg">
-                <Card.Body>
-                  <h3 className="mb-4">Volunteer Information</h3>
-                  <p><strong>Name:</strong> {searchResults.profile.Name}</p>
-                  <p><strong>Username:</strong> {searchResults.username}</p>
-                  <p><strong>Email:</strong> {searchResults.email}</p>
-                  <p><strong>Phone:</strong> {searchResults.phone_number}</p>
-                  <p><strong>Location:</strong> {searchResults.profile.location}</p>
-                  <p><strong>Role:</strong> {searchResults.role}</p>
+          <Card className="shadow-lg mt-4 p-4" style={{ borderRadius: "15px" }}>
+            <h3 className="mb-3 text-center">👤 Volunteer Information</h3>
+            <Row className="mb-3">
+              <Col md={6}><strong>Name:</strong> {searchResults.profile.Name}</Col>
+              <Col md={6}><strong>Username:</strong> {searchResults.username}</Col>
+            </Row>
+            <Row className="mb-3">
+              <Col md={6}><strong>Email:</strong> {searchResults.email}</Col>
+              <Col md={6}><strong>Phone:</strong> {searchResults.phone_number}</Col>
+            </Row>
+            <Row className="mb-3">
+              <Col md={6}><strong>Location:</strong> {searchResults.profile.location}</Col>
+              <Col md={6}><strong>Role:</strong> {searchResults.role}</Col>
+            </Row>
 
-                  <h5 className="mt-4">Send Notification</h5>
+            <h5 className="mt-4">✉️ Send Notification</h5>
+            <Form.Group className="mb-3">
+              <Form.Label>Notification Type</Form.Label>
+              <Form.Select value={notificationType} onChange={(e) => setNotificationType(e.target.value)}>
+                <option value="Event Assignment">Event Assignment</option>
+                <option value="Update">Update</option>
+                <option value="Reminder">Reminder</option>
+              </Form.Select>
+            </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Notification Type</Form.Label>
-                    <Form.Select
-                      value={notificationType}
-                      onChange={(e) => setNotificationType(e.target.value)}
-                    >
-                      <option value="Event Assignment">Event Assignment</option>
-                      <option value="Update">Update</option>
-                      <option value="Reminder">Reminder</option>
-                    </Form.Select>
-                  </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label>Message</Form.Label>
+              <InputGroup>
+                <Form.Control
+                  as="textarea"
+                  rows={3}
+                  placeholder="Enter your message..."
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                />
+              </InputGroup>
+            </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Message</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={3}
-                      placeholder="Enter your message..."
-                      value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                    />
-                  </Form.Group>
-
-                  <Button
-                    variant="success"
-                    className="w-100"
-                    onClick={handleSendNotification}
-                  >
-                    📢 Send Notification
-                  </Button>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
+            <Button variant="success" className="w-100" onClick={handleSendNotification}>
+              🚀 Send Notification
+            </Button>
+          </Card>
         )}
       </Container>
     </Container>

@@ -33,7 +33,7 @@ const Sidebar = () => {
           <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>
         </ListGroup.Item>
         <ListGroup.Item className="bg-dark text-white border-0 py-2">
-          <Link to="/notify-volunteers" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>
+          <Link to="/notifications" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>
         </ListGroup.Item>
         <ListGroup.Item className="bg-dark text-white border-0 py-2">
           <Link to="/volunteer-history" className="text-decoration-none text-white fs-6">📜 View Volunteer History</Link>
