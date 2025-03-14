@@ -1,7 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const volunteersData = require('./volunteersMatchData');
-const volunteerHistoryRecords = require('./volunteerHistoryData');
 
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
@@ -12,7 +10,9 @@ const authenticateToken = (req, res, next) => {
     return res.status(401).json({ error: 'Authentication required' });
   }
 
-  req.user = { role: 'admin' }; 
+  // In a real application, you'd verify the JWT token here
+  // For now, we'll assume a valid admin token
+  req.user = { role: 'admin' };
   next();
 };
 
@@ -26,106 +26,153 @@ const verifyAdminAccess = (req, res, next) => {
 };
 
 /**
- * @route   GET /pages/match-volunteers/volunteers/search
- * @desc    Search for volunteers by different criteria
+ * @route   GET /api/volunteer-matcher/volunteers
+ * @desc    Get all volunteers with their skills
  * @access  Admin only
  */
-router.get('/volunteers/search', authenticateToken, verifyAdminAccess, (req, res) => {
+router.get('/volunteers', authenticateToken, verifyAdminAccess, async (req, res) => {
   try {
-    const { type, term } = req.query;
-    
-    if (!type || !term) {
-      return res.status(400).json({ error: 'Search type and term are required' });
+    const [volunteers] = await pool.query(`
+      SELECT u.username, u.phone_number, u.email, up.first_name, up.last_name
+      FROM Users u
+      JOIN User_Profile up ON u.username = up.user_id
+      WHERE u.role = 'volunteer'
+    `);
+
+    // For each volunteer, get their skills
+    for (let volunteer of volunteers) {
+      const [skills] = await pool.query(`
+        SELECT s.skill_name
+        FROM User_Skills us
+        JOIN Skills s ON us.skill_id = s.skill_id
+        WHERE us.user_id = ?
+      `, [volunteer.username]);
+
+      volunteer.skills = skills.map(s => s.skill_name);
     }
 
-    let volunteer;
-    
-    // Find volunteer based on search type
-    switch (type) {
-      case 'username':
-        volunteer = volunteersData.find(v => v.username === term);
-        break;
-      case 'email':
-        volunteer = volunteersData.find(v => v.email === term);
-        break;
-      case 'phone':
-        volunteer = volunteersData.find(v => v.phone_number === term);
-        break;
-      case 'name':
-        // Search by either first or last name (case insensitive)
-        volunteer = volunteersData.find(v => 
-          v.first_name.toLowerCase().includes(term.toLowerCase()) || 
-          v.last_name.toLowerCase().includes(term.toLowerCase())
-        );
-        break;
-      default:
-        return res.status(400).json({ error: 'Invalid search type' });
-    }
-
-    if (!volunteer) {
-      return res.status(404).json({ error: 'Volunteer not found' });
-    }
-
-    res.json(volunteer);
+    res.json(volunteers);
   } catch (error) {
-    console.error('Error searching for volunteer:', error);
-    res.status(500).json({ error: 'Server error while searching for volunteer' });
+    console.error('Error fetching volunteers:', error);
+    res.status(500).json({ error: 'Server error while fetching volunteers' });
   }
 });
 
 /**
- * @route   GET /pages/match-volunteers/volunteers/:username/history
- * @desc    Get volunteering history for a specific volunteer
+ * @route   GET /api/volunteer-matcher/volunteers/search
+ * @desc    Search for volunteers by name, email, or username
  * @access  Admin only
  */
-router.get('/volunteers/:username/history', authenticateToken, verifyAdminAccess, (req, res) => {
+router.get('/volunteers/search', authenticateToken, verifyAdminAccess, async (req, res) => {
   try {
-    const { username } = req.params;
+    const { term } = req.query;
     
-    // Find the volunteer
-    const volunteer = volunteersData.find(v => v.username === username);
-    
-    if (!volunteer) {
-      return res.status(404).json({ error: 'Volunteer not found' });
+    if (!term) {
+      return res.status(400).json({ error: 'Search term is required' });
     }
-    
-    // Find history records for this volunteer by matching volunteerName
-    const history = volunteerHistoryRecords
-      .filter(record => record.volunteerName === `${volunteer.first_name} ${volunteer.last_name}`)
-      .map(record => ({
-        eventName: record.eventName,
-        eventDate: record.eventDate,
-        checkin: record.status === 'Checked In' // Convert status to boolean for frontend
-      }))
-      .sort((a, b) => new Date(b.eventDate) - new Date(a.eventDate)); // Sort newest first
-    
-    res.json(history);
+
+    const searchTerm = `%${term}%`;
+
+    const [volunteers] = await pool.query(`
+      SELECT u.username, u.phone_number, u.email, up.first_name, up.last_name
+      FROM Users u
+      JOIN User_Profile up ON u.username = up.user_id
+      WHERE u.role = 'volunteer'
+      AND (
+        u.username LIKE ? OR
+        u.email LIKE ? OR
+        up.first_name LIKE ? OR
+        up.last_name LIKE ?
+      )
+    `, [searchTerm, searchTerm, searchTerm, searchTerm]);
+
+    // For each volunteer, get their skills
+    for (let volunteer of volunteers) {
+      const [skills] = await pool.query(`
+        SELECT s.skill_name
+        FROM User_Skills us
+        JOIN Skills s ON us.skill_id = s.skill_id
+        WHERE us.user_id = ?
+      `, [volunteer.username]);
+
+      volunteer.skills = skills.map(s => s.skill_name);
+    }
+
+    res.json(volunteers);
   } catch (error) {
-    console.error('Error fetching volunteer history:', error);
-    res.status(500).json({ error: 'Server error while fetching volunteer history' });
+    console.error('Error searching for volunteers:', error);
+    res.status(500).json({ error: 'Server error while searching for volunteers' });
   }
 });
 
 /**
- * @route   GET /pages/match-volunteers/events
- * @desc    Get list of available events for volunteer matching
+ * @route   GET /api/volunteer-matcher/events
+ * @desc    Get all events with required skills and volunteer counts
  * @access  Admin only
  */
-router.get('/events', authenticateToken, verifyAdminAccess, (req, res) => {
+router.get('/events', authenticateToken, verifyAdminAccess, async (req, res) => {
   try {
-    // Extract unique events from the history records
-    const events = [...new Set(volunteerHistoryRecords.map(record => record.eventName))]
-      .map(eventName => {
-        const eventRecord = volunteerHistoryRecords.find(r => r.eventName === eventName);
-        return {
-          name: eventName,
-          date: eventRecord.eventDate,
-          description: eventRecord.description,
-          maxVolunteers: eventRecord.maxVolunteers
-        };
-      })
-      .sort((a, b) => new Date(b.date) - new Date(a.date)); // Sort by date, newest first
-    
+    const [events] = await pool.query(`
+      SELECT 
+        e.EID as id,
+        e.Name as eventName,
+        e.Name as name,
+        CONCAT(l.venue_name, ', ', l.address) as location,
+        e.Date as eventDate,
+        e.Date as date,
+        e.Description as eventDescription,
+        e.Description as description,
+        e.max_volunteers as maxVolunteers,
+        e.max_volunteers as volunteersNeeded,
+        e.Urgency as urgency,
+        l.venue_name as venue
+      FROM Events e
+      JOIN Locations l ON e.Location_id = l.LocID
+      WHERE e.Date >= CURDATE()
+      ORDER BY e.Date
+    `);
+
+    // For each event, get required skills
+    for (let event of events) {
+      // Get required skills
+      const [skills] = await pool.query(`
+        SELECT s.skill_name
+        FROM Event_Skills es
+        JOIN Skills s ON es.skill_id = s.skill_id
+        WHERE es.event_id = ?
+      `, [event.id]);
+
+      event.requiredSkills = skills.map(s => s.skill_name);
+      event.skills = event.requiredSkills; // Duplicate for frontend compatibility
+
+      // Get volunteer count
+      const [volunteerCount] = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM Volunteering_History
+        WHERE EID = ?
+      `, [event.id]);
+
+      event.volunteersAssigned = volunteerCount[0].count || 0;
+      event.volunteersRegistered = event.volunteersAssigned;
+      
+      // Format date and add placeholder times
+      const eventDate = new Date(event.eventDate);
+      event.eventDate = eventDate.toISOString();
+      event.date = event.eventDate;
+      event.startTime = "9:00 AM"; // Placeholder
+      event.time = event.startTime;
+      event.endTime = "1:00 PM"; // Placeholder
+      
+      // Add placeholder contact info
+      event.contactPerson = "Event Coordinator";
+      event.contactEmail = "coordinator@impactnow.org";
+      event.contactPhone = "555-123-4567";
+      event.status = "Active";
+      event.visibility = "Public";
+      event.createdAt = new Date().toISOString();
+      event.createdBy = "admin";
+    }
+
     res.json(events);
   } catch (error) {
     console.error('Error fetching events:', error);
@@ -134,56 +181,248 @@ router.get('/events', authenticateToken, verifyAdminAccess, (req, res) => {
 });
 
 /**
- * @route   POST /pages/match-volunteers/match
+ * @route   GET /api/volunteer-matcher/events/search
+ * @desc    Search for events by name, description, or location
+ * @access  Admin only
+ */
+router.get('/events/search', authenticateToken, verifyAdminAccess, async (req, res) => {
+  try {
+    const { term } = req.query;
+    
+    if (!term) {
+      return res.status(400).json({ error: 'Search term is required' });
+    }
+
+    const searchTerm = `%${term}%`;
+
+    const [events] = await pool.query(`
+      SELECT 
+        e.EID as id,
+        e.Name as eventName,
+        e.Name as name,
+        CONCAT(l.venue_name, ', ', l.address) as location,
+        e.Date as eventDate,
+        e.Date as date,
+        e.Description as eventDescription,
+        e.Description as description,
+        e.max_volunteers as maxVolunteers,
+        e.max_volunteers as volunteersNeeded,
+        e.Urgency as urgency,
+        l.venue_name as venue
+      FROM Events e
+      JOIN Locations l ON e.Location_id = l.LocID
+      WHERE e.Date >= CURDATE()
+      AND (
+        e.Name LIKE ? OR
+        e.Description LIKE ? OR
+        l.venue_name LIKE ? OR
+        l.address LIKE ?
+      )
+      ORDER BY e.Date
+    `, [searchTerm, searchTerm, searchTerm, searchTerm]);
+
+    // Process events similar to the '/events' route
+    for (let event of events) {
+      const [skills] = await pool.query(`
+        SELECT s.skill_name
+        FROM Event_Skills es
+        JOIN Skills s ON es.skill_id = s.skill_id
+        WHERE es.event_id = ?
+      `, [event.id]);
+
+      event.requiredSkills = skills.map(s => s.skill_name);
+      event.skills = event.requiredSkills;
+
+      const [volunteerCount] = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM Volunteering_History
+        WHERE EID = ?
+      `, [event.id]);
+
+      event.volunteersAssigned = volunteerCount[0].count || 0;
+      event.volunteersRegistered = event.volunteersAssigned;
+      
+      // Format date and add placeholder times
+      const eventDate = new Date(event.eventDate);
+      event.eventDate = eventDate.toISOString();
+      event.date = event.eventDate;
+      event.startTime = "9:00 AM";
+      event.time = event.startTime;
+      event.endTime = "1:00 PM";
+      
+      // Add placeholder contact info
+      event.contactPerson = "Event Coordinator";
+      event.contactEmail = "coordinator@impactnow.org";
+      event.contactPhone = "555-123-4567";
+      event.status = "Active";
+      event.visibility = "Public";
+      event.createdAt = new Date().toISOString();
+      event.createdBy = "admin";
+    }
+
+    res.json(events);
+  } catch (error) {
+    console.error('Error searching for events:', error);
+    res.status(500).json({ error: 'Server error while searching for events' });
+  }
+});
+
+/**
+ * @route   GET /api/volunteer-matcher/events/skills/:skillName
+ * @desc    Get events that require a specific skill
+ * @access  Admin only
+ */
+router.get('/events/skills/:skillName', authenticateToken, verifyAdminAccess, async (req, res) => {
+  try {
+    const { skillName } = req.params;
+    
+    const [events] = await pool.query(`
+      SELECT 
+        e.EID as id,
+        e.Name as eventName,
+        e.Name as name,
+        CONCAT(l.venue_name, ', ', l.address) as location,
+        e.Date as eventDate,
+        e.Date as date,
+        e.Description as eventDescription,
+        e.Description as description,
+        e.max_volunteers as maxVolunteers,
+        e.max_volunteers as volunteersNeeded,
+        e.Urgency as urgency
+      FROM Events e
+      JOIN Locations l ON e.Location_id = l.LocID
+      JOIN Event_Skills es ON e.EID = es.event_id
+      JOIN Skills s ON es.skill_id = s.skill_id
+      WHERE s.skill_name = ?
+      AND e.Date >= CURDATE()
+      ORDER BY e.Date
+    `, [skillName]);
+
+    // Process events as in other routes
+    for (let event of events) {
+      // Get all required skills for this event
+      const [skills] = await pool.query(`
+        SELECT s.skill_name
+        FROM Event_Skills es
+        JOIN Skills s ON es.skill_id = s.skill_id
+        WHERE es.event_id = ?
+      `, [event.id]);
+
+      event.requiredSkills = skills.map(s => s.skill_name);
+      event.skills = event.requiredSkills;
+
+      // Get volunteer count
+      const [volunteerCount] = await pool.query(`
+        SELECT COUNT(*) as count
+        FROM Volunteering_History
+        WHERE EID = ?
+      `, [event.id]);
+
+      event.volunteersAssigned = volunteerCount[0].count || 0;
+      event.volunteersRegistered = event.volunteersAssigned;
+      
+      // Format date and add placeholder times
+      const eventDate = new Date(event.eventDate);
+      event.eventDate = eventDate.toISOString();
+      event.date = event.eventDate;
+      event.startTime = "9:00 AM";
+      event.time = event.startTime;
+      event.endTime = "1:00 PM";
+      
+      // Add placeholder contact info
+      event.contactPerson = "Event Coordinator";
+      event.contactEmail = "coordinator@impactnow.org";
+      event.contactPhone = "555-123-4567";
+      event.status = "Active";
+      event.visibility = "Public";
+      event.createdAt = new Date().toISOString();
+      event.createdBy = "admin";
+    }
+
+    res.json(events);
+  } catch (error) {
+    console.error('Error fetching events by skill:', error);
+    res.status(500).json({ error: 'Server error while fetching events by skill' });
+  }
+});
+
+/**
+ * @route   POST /api/volunteer-matcher/match
  * @desc    Match a volunteer to an event
  * @access  Admin only
  */
-router.post('/match', authenticateToken, verifyAdminAccess, (req, res) => {
+router.post('/match', authenticateToken, verifyAdminAccess, async (req, res) => {
   try {
-    const { username, eventName } = req.body;
+    const { username, eventId } = req.body;
     
-    if (!username || !eventName) {
-      return res.status(400).json({ error: 'Username and event name are required' });
+    if (!username || !eventId) {
+      return res.status(400).json({ error: 'Username and event ID are required' });
     }
     
-    // Verify volunteer exists
-    const volunteer = volunteersData.find(v => v.username === username);
-    if (!volunteer) {
+    // Check if the user exists
+    const [userRows] = await pool.query('SELECT * FROM Users WHERE username = ?', [username]);
+    if (userRows.length === 0) {
       return res.status(404).json({ error: 'Volunteer not found' });
     }
     
-    // Verify event exists
-    const event = volunteerHistoryRecords.find(r => r.eventName === eventName);
-    if (!event) {
+    // Check if the event exists
+    const [eventRows] = await pool.query('SELECT * FROM Events WHERE EID = ?', [eventId]);
+    if (eventRows.length === 0) {
       return res.status(404).json({ error: 'Event not found' });
     }
     
-    // Check if volunteer is already assigned to this event
-    const existingMatch = volunteerHistoryRecords.find(
-      r => r.volunteerName === `${volunteer.first_name} ${volunteer.last_name}` && r.eventName === eventName
+    // Check if the volunteer is already matched to this event
+    const [existingMatch] = await pool.query(
+      'SELECT * FROM Volunteering_History WHERE UID = ? AND EID = ?',
+      [username, eventId]
     );
     
-    if (existingMatch) {
+    if (existingMatch.length > 0) {
       return res.status(400).json({ error: 'Volunteer is already matched to this event' });
     }
     
-    // Create new record
-    const newId = Math.max(...volunteerHistoryRecords.map(r => r.id)) + 1;
+    // Check if the event has reached maximum volunteers
+    const [volunteerCount] = await pool.query(
+      'SELECT COUNT(*) as count FROM Volunteering_History WHERE EID = ?',
+      [eventId]
+    );
     
-    const newRecord = {
-      id: newId,
-      volunteerName: `${volunteer.first_name} ${volunteer.last_name}`,
-      eventName: eventName,
-      eventDate: event.eventDate,
-      status: 'Pending', // Initial status is pending
-      hoursServed: 0,
-      description: `Matched to ${eventName}`,
-      maxVolunteers: event.maxVolunteers
-    };
+    const [eventDetails] = await pool.query(
+      'SELECT max_volunteers FROM Events WHERE EID = ?',
+      [eventId]
+    );
     
-    volunteerHistoryRecords.push(newRecord);
+    if (volunteerCount[0].count >= eventDetails[0].max_volunteers) {
+      return res.status(400).json({ error: 'Event has reached maximum volunteer capacity' });
+    }
     
-    res.status(201).json(newRecord);
+    // Create the match
+    const [result] = await pool.query(
+      'INSERT INTO Volunteering_History (EID, UID, checkin) VALUES (?, ?, 0)',
+      [eventId, username]
+    );
+    
+    // Get event and user details for response
+    const [event] = await pool.query(
+      'SELECT Name, Date FROM Events WHERE EID = ?',
+      [eventId]
+    );
+    
+    const [user] = await pool.query(
+      'SELECT first_name, last_name FROM User_Profile WHERE user_id = ?',
+      [username]
+    );
+    
+    res.status(201).json({
+      id: result.insertId,
+      message: `Successfully matched ${user[0].first_name} ${user[0].last_name} to ${event[0].Name}`,
+      eventId: eventId,
+      username: username,
+      eventName: event[0].Name,
+      eventDate: event[0].Date,
+      volunteerName: `${user[0].first_name} ${user[0].last_name}`
+    });
+    
   } catch (error) {
     console.error('Error matching volunteer to event:', error);
     res.status(500).json({ error: 'Server error while matching volunteer to event' });
@@ -191,36 +430,57 @@ router.post('/match', authenticateToken, verifyAdminAccess, (req, res) => {
 });
 
 /**
- * @route   PUT /pages/match-volunteers/status/:id
- * @desc    Update volunteer event status (check-in/out)
+ * @route   GET /api/volunteer-matcher/matches
+ * @desc    Get all volunteer-event matches
  * @access  Admin only
  */
-router.put('/status/:id', authenticateToken, verifyAdminAccess, (req, res) => {
+router.get('/matches', authenticateToken, verifyAdminAccess, async (req, res) => {
   try {
-    const recordId = parseInt(req.params.id, 10);
-    const { status, hoursServed } = req.body;
+    const [matches] = await pool.query(`
+      SELECT 
+        vh.HID as id,
+        vh.UID as username,
+        vh.EID as eventId,
+        e.Name as eventName,
+        e.Date as eventDate,
+        CONCAT(up.first_name, ' ', up.last_name) as volunteerName,
+        vh.checkin
+      FROM Volunteering_History vh
+      JOIN Events e ON vh.EID = e.EID
+      JOIN Users u ON vh.UID = u.username
+      JOIN User_Profile up ON u.username = up.user_id
+      ORDER BY e.Date DESC
+    `);
     
-    if (!status) {
-      return res.status(400).json({ error: 'Status is required' });
-    }
-    
-    // Find the record
-    const recordIndex = volunteerHistoryRecords.findIndex(r => r.id === recordId);
-    if (recordIndex === -1) {
-      return res.status(404).json({ error: 'Record not found' });
-    }
-    
-    // Update the record
-    volunteerHistoryRecords[recordIndex] = {
-      ...volunteerHistoryRecords[recordIndex],
-      status: status,
-      hoursServed: hoursServed || volunteerHistoryRecords[recordIndex].hoursServed
-    };
-    
-    res.json(volunteerHistoryRecords[recordIndex]);
+    res.json(matches);
   } catch (error) {
-    console.error('Error updating volunteer status:', error);
-    res.status(500).json({ error: 'Server error while updating volunteer status' });
+    console.error('Error fetching matches:', error);
+    res.status(500).json({ error: 'Server error while fetching matches' });
+  }
+});
+
+/**
+ * @route   DELETE /api/volunteer-matcher/match/:id
+ * @desc    Remove a volunteer-event match
+ * @access  Admin only
+ */
+router.delete('/match/:id', authenticateToken, verifyAdminAccess, async (req, res) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if the match exists
+    const [matchRows] = await pool.query('SELECT * FROM Volunteering_History WHERE HID = ?', [id]);
+    if (matchRows.length === 0) {
+      return res.status(404).json({ error: 'Match not found' });
+    }
+    
+    // Delete the match
+    await pool.query('DELETE FROM Volunteering_History WHERE HID = ?', [id]);
+    
+    res.json({ message: 'Match removed successfully' });
+  } catch (error) {
+    console.error('Error removing match:', error);
+    res.status(500).json({ error: 'Server error while removing match' });
   }
 });
 

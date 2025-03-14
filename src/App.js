@@ -10,7 +10,7 @@ import NewUser from "./pages/NewUser";
 import NewAdmin from "./pages/NewAdmin";
 import VolunteerDashboard from "./pages/VolunteerDashboard";
 import AdminDash from "./pages/AdminDash";
-import MatchVolunteers from "./pages/MatchVolunteers";
+import VolunteerEventMatcher from "./pages/MatchVolunteers";
 import EventSearch from "./pages/EventSearch";
 import Volunteerhistory from "./pages/Volunteerhistory";
 import EventManagement from "./pages/EventManagement";
@@ -35,7 +35,7 @@ function App() {
         <Route path="/newadmin" element={<NewAdmin />} />
         <Route path="/dashboard" element={<VolunteerDashboard />} />
         <Route path="/admin-dashboard" element={<AdminDash />} />
-        <Route path="/match-volunteers" element={<MatchVolunteers />} />
+        <Route path="/match-volunteers" element={<VolunteerEventMatcher />} />
         <Route path="/volunteer-history" element={<Volunteerhistory />} />
         <Route path="/event-management" element={<EventManagement />} />
         <Route path="/eventsearch" element={<EventSearch />} />

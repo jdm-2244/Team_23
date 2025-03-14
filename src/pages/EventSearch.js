@@ -102,6 +102,42 @@ const EventSearch = () => {
   const [searchResults, setSearchResults] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Mock event data
+  const mockEvents = [
+    {
+      id: 1,
+      name: "Community Garden Clean-up",
+      location: "Central Park Gardens",
+      date: "2025-03-15",
+      time: "09:00 AM - 12:00 PM",
+      slots: 15,
+      slotsRemaining: 8,
+      description: "Help maintain our community garden. Tools and refreshments provided.",
+      category: "Environment"
+    },
+    {
+      id: 2,
+      name: "Senior Center Tech Support",
+      location: "Golden Years Center",
+      date: "2025-03-20",
+      time: "02:00 PM - 04:00 PM",
+      slots: 10,
+      slotsRemaining: 5,
+      description: "Assist seniors with basic computer and smartphone skills.",
+      category: "Education"
+    },
+    {
+      id: 3,
+      name: "Food Bank Distribution",
+      location: "Downtown Food Bank",
+      date: "2025-03-18",
+      time: "10:00 AM - 02:00 PM",
+      slots: 20,
+      slotsRemaining: 12,
+      description: "Help sort and distribute food to families in need.",
+      category: "Community Service"
+    }
+  ];
 
   const handleSearch = (e) => {
     e.preventDefault();

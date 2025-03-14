@@ -1,283 +1,344 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Container, Row, Col, Button, Card, Form } from "react-bootstrap";
-import { Link } from "react-router-dom";
+import { Container, Row, Col, Button, Card, Form, Badge, Alert } from "react-bootstrap";
+import { Link, useNavigate } from "react-router-dom";
 import Sidebar from './Admin_sidebar';
 import NavigationBar from './NavigationBar';
-const MatchVolunteers = () => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [searchType, setSearchType] = useState('username');
-  const [searchResults, setSearchResults] = useState(null);
-  const [suggestions, setSuggestions] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+
+const VolunteerEventMatcher = () => {
+  const navigate = useNavigate();
+  // State for volunteers and events
+  const [volunteers, setVolunteers] = useState([]);
   const [events, setEvents] = useState([]);
-  const [selectedEvent, setSelectedEvent] = useState('');
-  const [matchStatus, setMatchStatus] = useState(null);
+  const [filteredEvents, setFilteredEvents] = useState([]);
+  const [selectedVolunteer, setSelectedVolunteer] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [eventSearchTerm, setEventSearchTerm] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [matchMessage, setMatchMessage] = useState("");
 
-  // Get auth headers for fetch
-  const getAuthHeaders = () => ({
-    Authorization: `Bearer ${localStorage.getItem('authToken')}`
-  });
-
-  // Fetch events when component mounts
+  // Fetch volunteers and events on component mount
   useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch('/pages/match-volunteers/events', {
-          method: 'GET',
-          headers: getAuthHeaders()
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Error: ${response.status}`);
-        }
-        
-        const eventsData = await response.json();
-        setEvents(eventsData);
-      } catch (error) {
-        console.error("Error fetching events:", error);
-      }
-    };
-    
+    fetchVolunteers();
     fetchEvents();
   }, []);
 
-  // Debounce function to limit API calls while typing
-  const debounce = (func, delay) => {
-    let timeoutId;
-    return function(...args) {
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-      timeoutId = setTimeout(() => {
-        func.apply(this, args);
-      }, delay);
-    };
-  };
-
-  // Live search function with validation
-  const performLiveSearch = useCallback(async (term, type) => {
-    if (!term || term.length < 1) {
-      setSuggestions([]);
-      return;
-    }
-
-    // Format the search term based on search type
-    let formattedTerm = term.trim();
-    
-    // Basic validation based on search type
-    switch(type) {
-      case 'email':
-        // For email, require at least '@' to start searching
-        if (!formattedTerm.includes('@')) {
-          return;
-        }
-        break;
-        
-      case 'phone':
-        // For phone, ensure there's at least one digit
-        if (!/\d/.test(formattedTerm)) {
-          return;
-        }
-        formattedTerm = formattedTerm.replace(/\D/g, '');
-        break;
-    }
-
+  // Function to fetch volunteers from API
+  const fetchVolunteers = async () => {
+    setIsLoading(true);
     try {
-      const response = await fetch(
-        `/pages/match-volunteers/volunteers/suggestions?type=${type}&term=${encodeURIComponent(formattedTerm)}`,
-        {
-          method: 'GET',
-          headers: getAuthHeaders()
-        }
-      );
-      
+      const response = await fetch('/api/match-volunteers/volunteers');
       if (!response.ok) {
-        throw new Error(`Error: ${response.status}`);
+        throw new Error('Failed to fetch volunteers');
       }
-      
       const data = await response.json();
-      setSuggestions(data);
+      
+      // Map the API response to match our component state structure
+      const formattedVolunteers = data.map(volunteer => ({
+        id: volunteer.username, // Using username as ID
+        name: volunteer.username,
+        phone: volunteer.phone_number,
+        email: volunteer.email,
+        fullName: `${volunteer.first_name} ${volunteer.last_name}`,
+        role: 'volunteer',
+        skills: volunteer.skills || []
+      }));
+      
+      setVolunteers(formattedVolunteers);
     } catch (error) {
-      console.error("Error fetching suggestions:", error);
-      setSuggestions([]);
-    }
-  }, []);
-
-  // Create debounced version of the search
-  const debouncedSearch = useCallback(
-    debounce((term, type) => performLiveSearch(term, type), 300),
-    [performLiveSearch]
-  );
-
-  // Effect to trigger live search when searchTerm changes
-  useEffect(() => {
-    debouncedSearch(searchTerm, searchType);
-  }, [searchTerm, searchType, debouncedSearch]);
-
-  const handleSearchTermChange = (e) => {
-    setSearchTerm(e.target.value);
-    // Live search is triggered by the useEffect above
-  };
-
-  const handleSuggestionClick = (suggestion) => {
-    setSearchTerm(suggestion.displayValue);
-    setSuggestions([]);
-    handleSearch(null, suggestion.username);
-  };
-
-  const handleSearch = async (e, selectedUsername = null) => {
-    if (e && e.preventDefault) e.preventDefault();
-    setLoading(true);
-    setError(null);
-    setSuggestions([]);
-    
-    // If no search term and no selected username, show error
-    if (!selectedUsername && !searchTerm.trim()) {
-      setError("Please enter a search term");
-      setLoading(false);
-      return;
-    }
-    
-    // Format the search term based on search type
-    let formattedTerm = selectedUsername || searchTerm.trim();
-    let searchTypeToUse = selectedUsername ? 'username' : searchType;
-    
-    // Validate and format based on search type (only if not using a selected username)
-    if (!selectedUsername) {
-      switch(searchType) {
-        case 'email':
-          // Simple email validation
-          if (!formattedTerm.includes('@') || !formattedTerm.includes('.')) {
-            setError("Please enter a valid email address");
-            setLoading(false);
-            return;
-          }
-          break;
-          
-        case 'phone':
-          // Remove non-numeric characters for phone
-          formattedTerm = formattedTerm.replace(/\D/g, '');
-          if (formattedTerm.length < 10) {
-            setError("Please enter a valid phone number");
-            setLoading(false);
-            return;
-          }
-          break;
-          
-        case 'name':
-          // Ensure name is properly formatted (at least 2 characters)
-          if (formattedTerm.length < 2) {
-            setError("Name must be at least 2 characters");
-            setLoading(false);
-            return;
-          }
-          break;
-          
-        case 'username':
-          // Ensure username has no spaces
-          if (formattedTerm.includes(' ')) {
-            setError("Username should not contain spaces");
-            setLoading(false);
-            return;
-          }
-          break;
-      }
-    }
-    
-    console.log(`Searching with type: ${searchTypeToUse}, term: ${formattedTerm}`);
-  
-    try {
-      // First search for the volunteer
-      const volunteerResponse = await fetch(
-        `/pages/match-volunteers/volunteers/search?type=${searchTypeToUse}&term=${encodeURIComponent(formattedTerm)}`, 
-        {
-          method: 'GET',
-          headers: getAuthHeaders()
-        }
-      );
+      console.error('Error fetching volunteers:', error);
+      setMatchMessage('Failed to load volunteers. Please try again.');
       
-      if (!volunteerResponse.ok) {
-        const errorData = await volunteerResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error: ${volunteerResponse.status}`);
-      }
-      
-      const volunteerData = await volunteerResponse.json();
-      
-      // Then get their history
-      const historyResponse = await fetch(
-        `/pages/match-volunteers/volunteers/${volunteerData.username}/history`,
-        {
-          method: 'GET',
-          headers: getAuthHeaders()
-        }
-      );
-      
-      if (!historyResponse.ok) {
-        const errorData = await historyResponse.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error: ${historyResponse.status}`);
-      }
-      
-      const historyData = await historyResponse.json();
-      
-      // Combine the data
-      const combinedData = {
-        ...volunteerData,
-        history: historyData
-      };
-      
-      setSearchResults(combinedData);
-    } catch (error) {
-      console.error("Error searching for volunteer:", error);
-      setError(error.message || "An error occurred while searching for the volunteer.");
+      // Fallback to sample data if API fails
+      const sampleVolunteers = [
+        { id: 'emma_brown', name: "emma_brown", phone: "+1-555-0204", email: "emma.brown@email.com", fullName: "Emma Brown", role: "volunteer", skills: ["teaching", "organizing", "computer skills"] },
+        { id: 'james_wilson', name: "james_wilson", phone: "+1-555-0203", email: "james.wilson@email.com", fullName: "James Wilson", role: "volunteer", skills: ["photography", "social media", "design"] },
+        { id: 'john_doe', name: "john_doe", phone: "+1-555-0201", email: "john.doe@email.com", fullName: "John Doe", role: "volunteer", skills: ["teaching", "patience", "first aid"] }
+      ];
+      setVolunteers(sampleVolunteers);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const matchVolunteerToEvent = async () => {
-    if (!searchResults || !selectedEvent) {
-      setError("Please select both a volunteer and an event");
+  // Function to fetch events from API
+  const fetchEvents = async () => {
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/match-volunteers/events');
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
+      }
+      const data = await response.json();
+      
+      setEvents(data);
+      setFilteredEvents(data);
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      setMatchMessage('Failed to load events. Please try again.');
+      
+      // Fallback to sample data if API fails
+      const sampleEvents = [
+        {
+          id: 1,
+          eventName: "Beach Cleanup",
+          name: "Beach Cleanup",
+          location: "Sunset Beach, 123 Coastal Road",
+          eventDate: "2025-03-15T09:00:00Z",
+          date: "2025-03-15T09:00:00Z",
+          startTime: "9:00 AM",
+          time: "9:00 AM",
+          endTime: "1:00 PM",
+          eventDescription: "Help clean up the beach and protect marine life.",
+          description: "Help clean up the beach and protect marine life.",
+          maxVolunteers: 20,
+          volunteersNeeded: 20,
+          volunteersAssigned: 5,
+          volunteersRegistered: 5,
+          requiredSkills: ["physical work", "environmental awareness"],
+          skills: ["physical work", "environmental awareness"],
+          urgency: "Low",
+          contactPerson: "Sarah Jones",
+          contactEmail: "sarah.j@impactnow.org",
+          contactPhone: "555-123-4567",
+          status: "Active",
+          visibility: "Public",
+          createdAt: "2025-01-05T10:30:00Z",
+          createdBy: "admin"
+        },
+        {
+          id: 2,
+          eventName: "Tech Workshop for Seniors",
+          name: "Tech Workshop for Seniors",
+          location: "Downtown Library, 456 Oak Avenue",
+          eventDate: "2025-02-20T13:00:00Z",
+          date: "2025-02-20T13:00:00Z",
+          startTime: "1:00 PM",
+          time: "1:00 PM",
+          endTime: "4:00 PM",
+          eventDescription: "Teach basic computer and smartphone skills to senior citizens.",
+          description: "Teach basic computer and smartphone skills to senior citizens.",
+          maxVolunteers: 10,
+          volunteersNeeded: 10,
+          volunteersAssigned: 2,
+          volunteersRegistered: 2,
+          requiredSkills: ["teaching", "patience", "computer skills"],
+          skills: ["teaching", "patience", "computer skills"],
+          urgency: "Medium",
+          contactPerson: "James Wilson",
+          contactEmail: "james.w@impactnow.org",
+          contactPhone: "555-456-7890",
+          status: "Active",
+          visibility: "Public",
+          createdAt: "2025-01-10T14:30:00Z",
+          createdBy: "admin"
+        },
+        {
+          id: 3,
+          eventName: "Food Drive",
+          name: "Food Drive",
+          location: "Community Center, 789 Pine Street",
+          eventDate: "2025-03-05T10:00:00Z",
+          date: "2025-03-05T10:00:00Z",
+          startTime: "10:00 AM",
+          time: "10:00 AM",
+          endTime: "3:00 PM",
+          eventDescription: "Collect and sort food donations for local food banks.",
+          description: "Collect and sort food donations for local food banks.",
+          maxVolunteers: 15,
+          volunteersNeeded: 15,
+          volunteersAssigned: 8,
+          volunteersRegistered: 8,
+          requiredSkills: ["organizing", "physical work"],
+          skills: ["organizing", "physical work"],
+          urgency: "High",
+          contactPerson: "Michael Brown",
+          contactEmail: "michael.b@impactnow.org",
+          contactPhone: "555-789-0123",
+          status: "Active",
+          visibility: "Public",
+          createdAt: "2025-01-15T09:45:00Z",
+          createdBy: "admin"
+        }
+      ];
+      setEvents(sampleEvents);
+      setFilteredEvents(sampleEvents);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle volunteer search
+  const handleSearch = async (e) => {
+    const term = e.target.value;
+    setSearchTerm(term);
+    
+    if (term.length > 2) {
+      // If search term is longer than 2 characters, search via API
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/match-volunteers/volunteers/search?term=${encodeURIComponent(term)}`);
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        const data = await response.json();
+        
+        // Map the API response to match our component state structure
+        const formattedVolunteers = data.map(volunteer => ({
+          id: volunteer.username,
+          name: volunteer.username,
+          phone: volunteer.phone_number,
+          email: volunteer.email,
+          fullName: `${volunteer.first_name} ${volunteer.last_name}`,
+          role: 'volunteer',
+          skills: volunteer.skills || []
+        }));
+        
+        setVolunteers(formattedVolunteers);
+      } catch (error) {
+        console.error('Error searching volunteers:', error);
+        // Fall back to client-side filtering if API search fails
+        const filtered = volunteers.filter(volunteer =>
+          volunteer.name.toLowerCase().includes(term.toLowerCase()) ||
+          volunteer.email.toLowerCase().includes(term.toLowerCase())
+        );
+        setVolunteers(filtered);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (term.length === 0) {
+      // If search term is cleared, refresh the full list
+      fetchVolunteers();
+    }
+  };
+
+  // Handle event search
+  const handleEventSearch = async (e) => {
+    const term = e.target.value;
+    setEventSearchTerm(term);
+    
+    if (term.length > 2) {
+      // If search term is longer than 2 characters, search via API
+      setIsLoading(true);
+      try {
+        const response = await fetch(`/api/match-volunteers/events/search?term=${encodeURIComponent(term)}`);
+        if (!response.ok) {
+          throw new Error('Search failed');
+        }
+        const data = await response.json();
+        setFilteredEvents(data);
+      } catch (error) {
+        console.error('Error searching events:', error);
+        // Fall back to client-side filtering if API search fails
+        const filtered = events.filter(event => 
+          event.eventName.toLowerCase().includes(term.toLowerCase()) ||
+          event.description.toLowerCase().includes(term.toLowerCase()) ||
+          event.location.toLowerCase().includes(term.toLowerCase())
+        );
+        setFilteredEvents(filtered);
+      } finally {
+        setIsLoading(false);
+      }
+    } else if (term.length === 0) {
+      // If search term is cleared, show all events
+      setFilteredEvents(events);
+    }
+  };
+
+  // Handle volunteer selection
+  const selectVolunteer = async (volunteer) => {
+    setSelectedVolunteer(volunteer);
+    
+    // Find matching events based on volunteer skills via API
+    if (volunteer.skills && volunteer.skills.length > 0) {
+      setIsLoading(true);
+      try {
+        // For simplicity, we'll use the first skill to find matching events
+        const skill = volunteer.skills[0];
+        const response = await fetch(`/api/match-volunteers/events/skills/${encodeURIComponent(skill)}`);
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch matching events');
+        }
+        
+        const matchingEvents = await response.json();
+        
+        if (matchingEvents.length > 0) {
+          setFilteredEvents(matchingEvents);
+        } else {
+          // If no matches found, show all events
+          setFilteredEvents(events);
+        }
+      } catch (error) {
+        console.error('Error finding matching events:', error);
+        
+        // Fall back to client-side filtering if API fails
+        const matches = events.filter(event => 
+          event.requiredSkills.some(skill => 
+            volunteer.skills.includes(skill)
+          )
+        );
+        
+        if (matches.length > 0) {
+          setFilteredEvents(matches);
+        } else {
+          setFilteredEvents(events);
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setFilteredEvents(events);
+    }
+  };
+
+  // Handle matching volunteer to event
+  const matchVolunteerToEvent = async (eventId) => {
+    if (!selectedVolunteer) {
+      setMatchMessage("Please select a volunteer first");
       return;
     }
     
+    setIsLoading(true);
     try {
-      setLoading(true);
-      const response = await fetch('/pages/match-volunteers/match', {
+      const response = await fetch('/api/match-volunteers/match', {
         method: 'POST',
         headers: {
-          ...getAuthHeaders(),
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          username: searchResults.username,
-          eventName: selectedEvent
-        })
+          username: selectedVolunteer.id, // Using username as ID
+          eventId: eventId
+        }),
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Error: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to match volunteer to event');
       }
       
       const result = await response.json();
-      setMatchStatus({
-        success: true,
-        message: `Successfully matched ${searchResults.first_name} to ${selectedEvent}`
-      });
+      setMatchMessage(result.message || `Successfully matched ${selectedVolunteer.name} to event #${eventId}`);
       
-      // Refresh volunteer history
-      handleSearch(null, searchResults.username);
+      // Refresh events data to update counts
+      fetchEvents();
     } catch (error) {
-      console.error("Error matching volunteer:", error);
-      setMatchStatus({
-        success: false,
-        message: error.message || "Failed to match volunteer to event"
-      });
+      console.error('Error matching volunteer to event:', error);
+      setMatchMessage(`Error: ${error.message}`);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+      
+      // Clear message after a delay
+      setTimeout(() => {
+        setMatchMessage("");
+      }, 5000);
     }
   };
+  
+  // Filter volunteers based on search term
+  const filteredVolunteers = volunteers.filter(volunteer =>
+    volunteer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    volunteer.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <Container
@@ -289,185 +350,191 @@ const MatchVolunteers = () => {
         display: "flex",
       }}
     >
-      <Sidebar />
-
-      {/* Transparent Navbar */}
       <NavigationBar />
-
-      {/* Main Content */}
-      <Container style={{ marginLeft: "250px", padding: "100px" }}>
-        <Row className="mb-4">
-          <Col>
-            <h2 className="text-white mb-4">Volunteer Lookup</h2>
-            <Card className="shadow-lg">
+      <Sidebar />
+      
+      {/* Main content */}
+      <Container style={{ marginLeft: "250px", padding: "40px", marginTop: "80px" }}>
+        <h1 className="mb-4 text-white">Volunteer-Event Matcher</h1>
+        
+        {matchMessage && (
+          <Alert variant="success" dismissible>
+            {matchMessage}
+          </Alert>
+        )}
+        
+        <Row>
+          {/* Volunteer Search Section */}
+          <Col md={5}>
+            <Card className="shadow-lg mb-4">
+              <Card.Header className="bg-dark text-white">
+                <h5 className="mb-0">Find Volunteers</h5>
+              </Card.Header>
               <Card.Body>
-                <Form onSubmit={handleSearch}>
-                  <Row>
-                    <Col md={4}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Search By</Form.Label>
-                        <Form.Select 
-                          value={searchType}
-                          onChange={(e) => setSearchType(e.target.value)}
-                        >
-                          <option value="username">Username</option>
-                          <option value="email">Email</option>
-                          <option value="phone">Phone Number</option>
-                          <option value="name">Name</option>
-                        </Form.Select>
-                      </Form.Group>
-                    </Col>
-                    <Col md={8}>
-                      <Form.Group className="mb-3">
-                        <Form.Label>Search Term</Form.Label>
-                        <div className="position-relative">
-                          <Form.Control
-                            type="text"
-                            placeholder="Enter search term..."
-                            value={searchTerm}
-                            onChange={handleSearchTermChange}
-                            autoComplete="off"
-                          />
-                          {suggestions.length > 0 && (
-                            <div className="position-absolute w-100 mt-1 shadow-lg" style={{ zIndex: 1000 }}>
-                              <Card>
-                                <Card.Body className="p-0">
-                                  <ul className="list-group list-group-flush">
-                                    {suggestions.map((suggestion, index) => (
-                                      <li 
-                                        key={index} 
-                                        className="list-group-item list-group-item-action" 
-                                        style={{ cursor: 'pointer' }}
-                                        onClick={() => handleSuggestionClick(suggestion)}
-                                      >
-                                        {suggestion.displayValue}
-                                      </li>
-                                    ))}
-                                  </ul>
-                                </Card.Body>
-                              </Card>
-                            </div>
-                          )}
-                        </div>
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                  <Button 
-                    variant="primary" 
-                    type="submit" 
-                    className="w-100"
-                    disabled={loading}
-                    style={{
-                      backgroundColor: "#2575fc",
-                      border: "none"
-                    }}
-                  >
-                    {loading ? 'Searching...' : 'Search Volunteer'}
-                  </Button>
-                </Form>
+                <Form.Group className="mb-3">
+                  <Form.Control 
+                    type="text" 
+                    placeholder="Search volunteers by name or email" 
+                    value={searchTerm}
+                    onChange={handleSearch}
+                  />
+                </Form.Group>
                 
-                {error && (
-                  <div className="alert alert-danger mt-3">
-                    {error}
+                {isLoading ? (
+                  <p>Loading volunteers...</p>
+                ) : (
+                  <div className="volunteer-list" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+                    {filteredVolunteers.length === 0 ? (
+                      <p>No volunteers found</p>
+                    ) : (
+                      filteredVolunteers.map(volunteer => (
+                        <Card 
+                          key={volunteer.id} 
+                          className={`mb-2 ${selectedVolunteer && selectedVolunteer.id === volunteer.id ? 'border-primary' : ''}`}
+                          onClick={() => selectVolunteer(volunteer)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <Card.Body>
+                            <div className="d-flex justify-content-between">
+                              <div>
+                                <h6>{volunteer.fullName || volunteer.name}</h6>
+                                <p className="mb-1 small">{volunteer.email}</p>
+                                <p className="mb-1 small">{volunteer.phone}</p>
+                              </div>
+                              <div>
+                                {volunteer.skills && volunteer.skills.map(skill => (
+                                  <Badge key={skill} bg="info" className="me-1 mb-1">{skill}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      ))
+                    )}
                   </div>
                 )}
               </Card.Body>
+              <Card.Footer>
+                <div className="d-flex justify-content-between">
+                  <small>Total: {filteredVolunteers.length} volunteer(s)</small>
+                  {selectedVolunteer && (
+                    <Button size="sm" variant="outline-secondary" onClick={() => setSelectedVolunteer(null)}>
+                      Clear Selection
+                    </Button>
+                  )}
+                </div>
+              </Card.Footer>
+            </Card>
+            
+            {selectedVolunteer && (
+              <Card className="shadow-lg mb-4">
+                <Card.Header className="bg-success text-white">
+                  <h5 className="mb-0">Selected Volunteer</h5>
+                </Card.Header>
+                <Card.Body>
+                  <h4>{selectedVolunteer.name}</h4>
+                  <p><strong>Email:</strong> {selectedVolunteer.email}</p>
+                  <p><strong>Phone:</strong> {selectedVolunteer.phone}</p>
+                  <p><strong>Skills:</strong></p>
+                  <div>
+                    {selectedVolunteer.skills && selectedVolunteer.skills.map(skill => (
+                      <Badge key={skill} bg="info" className="me-1 mb-1">{skill}</Badge>
+                    ))}
+                  </div>
+                </Card.Body>
+              </Card>
+            )}
+          </Col>
+          
+          {/* Event Section */}
+          <Col md={7}>
+            <Card className="shadow-lg">
+              <Card.Header className="bg-dark text-white">
+                <h5 className="mb-0">Available Events</h5>
+              </Card.Header>
+              <Card.Body>
+                <Form.Group className="mb-3">
+                  <Form.Control 
+                    type="text" 
+                    placeholder="Search events by name, description or location" 
+                    value={eventSearchTerm}
+                    onChange={handleEventSearch}
+                  />
+                </Form.Group>
+                
+                {selectedVolunteer && (
+                  <div className="alert alert-info">
+                    Showing events matching {selectedVolunteer.name}'s skills
+                  </div>
+                )}
+                
+                {isLoading ? (
+                  <p>Loading events...</p>
+                ) : (
+                  <div className="event-list" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                    {filteredEvents.length === 0 ? (
+                      <p>No matching events found</p>
+                    ) : (
+                      filteredEvents.map(event => (
+                        <Card key={event.id} className="mb-3">
+                          <Card.Header className="d-flex justify-content-between align-items-center">
+                            <h6 className="mb-0">{event.eventName}</h6>
+                            <Badge bg={event.urgency === "High" ? "danger" : event.urgency === "Medium" ? "warning" : "success"}>
+                              {event.urgency} Priority
+                            </Badge>
+                          </Card.Header>
+                          <Card.Body>
+                            <Row>
+                              <Col md={8}>
+                                <p className="mb-1"><strong>Date:</strong> {new Date(event.eventDate).toLocaleDateString()}</p>
+                                <p className="mb-1"><strong>Time:</strong> {event.startTime} - {event.endTime}</p>
+                                <p className="mb-1"><strong>Location:</strong> {event.location}</p>
+                                <p className="mb-2"><strong>Description:</strong> {event.eventDescription}</p>
+                                <p className="mb-1">
+                                  <strong>Required Skills:</strong>{" "}
+                                  {event.requiredSkills.map(skill => (
+                                    <Badge 
+                                      key={skill} 
+                                      bg={selectedVolunteer && selectedVolunteer.skills && selectedVolunteer.skills.includes(skill) ? "success" : "secondary"} 
+                                      className="me-1"
+                                    >
+                                      {skill}
+                                    </Badge>
+                                  ))}
+                                </p>
+                              </Col>
+                              <Col md={4}>
+                                <div className="text-center mb-3">
+                                  <div className="h5 mb-0">{event.volunteersAssigned}/{event.maxVolunteers}</div>
+                                  <small>Volunteers Assigned</small>
+                                </div>
+                                
+                                <Button 
+                                  variant="primary" 
+                                  className="w-100"
+                                  disabled={!selectedVolunteer}
+                                  onClick={() => matchVolunteerToEvent(event.id)}
+                                >
+                                  Assign Volunteer
+                                </Button>
+                              </Col>
+                            </Row>
+                          </Card.Body>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                )}
+              </Card.Body>
+              <Card.Footer>
+                <small>Showing {filteredEvents.length} of {events.length} events</small>
+              </Card.Footer>
             </Card>
           </Col>
         </Row>
-
-        {searchResults && (
-          <Row>
-            <Col>
-              <Card className="shadow-lg">
-                <Card.Body>
-                  <h3 className="mb-4">Volunteer Information</h3>
-                  <Row>
-                    <Col md={6}>
-                      <h5>Personal Details</h5>
-                      <p><strong>Name:</strong> {searchResults.first_name} {searchResults.last_name}</p>
-                      <p><strong>Username:</strong> {searchResults.username}</p>
-                      <p><strong>Email:</strong> {searchResults.email}</p>
-                      <p><strong>Phone:</strong> {searchResults.phone_number}</p>
-                      <p><strong>Location:</strong> {searchResults.location}</p>
-                      <p><strong>Role:</strong> {searchResults.role}</p>
-                    </Col>
-                    <Col md={6}>
-                      <h5>Volunteering History</h5>
-                      {searchResults.history && searchResults.history.length > 0 ? (
-                        searchResults.history.map((record, index) => (
-                          <Card key={index} className="mb-2">
-                            <Card.Body>
-                              <p className="mb-1"><strong>Event:</strong> {record.eventName}</p>
-                              <p className="mb-1"><strong>Date:</strong> {new Date(record.eventDate).toLocaleDateString()}</p>
-                              <p className="mb-0">
-                                <strong>Status:</strong> 
-                                <span className={`text-${record.checkin ? 'success' : 'danger'}`}>
-                                  {record.checkin ? ' Checked In' : ' No Show'}
-                                </span>
-                              </p>
-                            </Card.Body>
-                          </Card>
-                        ))
-                      ) : (
-                        <p>No volunteering history found.</p>
-                      )}
-                    </Col>
-                  </Row>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        )}
-
-        {searchResults && (
-          <Row className="mt-4">
-            <Col>
-              <Card className="shadow-lg">
-                <Card.Body>
-                  <h3 className="mb-4">Match to Event</h3>
-                  <Form>
-                    <Form.Group className="mb-3">
-                      <Form.Label>Select Event</Form.Label>
-                      <Form.Select 
-                        value={selectedEvent}
-                        onChange={(e) => setSelectedEvent(e.target.value)}
-                      >
-                        <option value="">-- Select an Event --</option>
-                        {events.map((event, index) => (
-                          <option key={index} value={event.name}>
-                            {event.name} - {new Date(event.date).toLocaleDateString()}
-                          </option>
-                        ))}
-                      </Form.Select>
-                    </Form.Group>
-                    
-                    <Button 
-                      variant="primary" 
-                      onClick={matchVolunteerToEvent} 
-                      disabled={loading || !selectedEvent}
-                      style={{
-                        backgroundColor: "#2575fc",
-                        border: "none"
-                      }}
-                    >
-                      {loading ? 'Processing...' : 'Match Volunteer to Event'}
-                    </Button>
-                  </Form>
-                  
-                  {matchStatus && (
-                    <div className={`alert alert-${matchStatus.success ? 'success' : 'danger'} mt-3`}>
-                      {matchStatus.message}
-                    </div>
-                  )}
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        )}
       </Container>
     </Container>
   );
 };
 
-export default MatchVolunteers;
+export default VolunteerEventMatcher;

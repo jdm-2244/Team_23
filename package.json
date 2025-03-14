@@ -19,11 +19,12 @@
     "web-vitals": "^4.2.4"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "PORT=3000 react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "test:backend": "jest --coverage --testPathPattern=src/backend",
-    "server": "node src/backend/server.js"
+    "server": "node src/backend/server.js",
+    "dev": "concurrently \"npm run start\" \"npm run server\""
   },
   "eslintConfig": {
     "extends": [

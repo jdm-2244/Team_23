@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Container, Navbar, Nav, Row, Col, ListGroup, Button, Card } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import NavigationBar from './NavigationBar';
-
+import Sidebar from './Admin_sidebar';
 const AdminDash = () => {
   const firstName = "Admin"; 
   const navigate = useNavigate();
@@ -33,80 +33,10 @@ const AdminDash = () => {
         display: "flex",
       }}
     >
-      <div
-        className="bg-dark text-white d-flex flex-column justify-content-between align-items-center rounded shadow-lg"
-        style={{
-          width: "220px",
-          minHeight: "360px",
-          position: "fixed",
-          left: "20px",
-          top: "120px",
-          padding: "20px",
-        }}
-      >
-        <ListGroup variant="flush" className="w-100 text-center">
-        <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/admin-dashboard" className="text-decoration-none text-white fs-6">🏠 Dashboard</Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/profile-admin" className="text-decoration-none text-white fs-6">👤 Profile</Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/event-management" className="text-decoration-none text-white fs-6">
-              📅 Create a New Event
-            </Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/match-volunteers" className="text-decoration-none text-white fs-6">🤝 Match Volunteers</Link>
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/notifications" className="text-decoration-none text-white fs-6">📢 Notify Volunteers</Link>  
-          </ListGroup.Item>
-          <ListGroup.Item className="bg-dark text-white border-0 py-2">
-            <Link to="/volunteer-history" className="text-decoration-none text-white fs-6">📜 View Volunteer History</Link>
-          </ListGroup.Item>
-        </ListGroup>
+       <Sidebar />
 
-        <Button
-          variant="danger"
-          className="w-100 mt-3"
-          onClick={handleLogout}
-          style={{
-            backgroundColor: "#dc3545",
-            border: "none",
-            padding: "10px 0",
-            fontSize: "16px",
-          }}
-        >
-          🚪 Log Out
-        </Button>
-      </div>
-
-      <Container style={{ marginLeft: "250px", padding: "40px" }}>
-
-      <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
-        <Container className="d-flex justify-content-center">
-          <Navbar.Brand className="text-white fw-bold fs-2" style={{ textShadow: "2px 2px 4px rgba(9, 7, 3, 2)" }}> ImpactNow </Navbar.Brand>
-          <Navbar.Toggle aria-controls="basic-navbar-nav" />
-          <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
-            <Nav className="fs-5 d-flex gap-3">
-              <Nav.Link as={Link} to="/" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                Home
-              </Nav.Link>
-              <Nav.Link as={Link} to="/faq" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                FAQ
-              </Nav.Link>
-              <Nav.Link as={Link} to="/about" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                About Us
-              </Nav.Link>
-              <Nav.Link as={Link} to="/contact" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
-                Contact Us
-              </Nav.Link>
-            </Nav>
-          </Navbar.Collapse>
-        </Container>
-      </Navbar>
-
+      <NavigationBar />
+      
         <Row className="mt-5">
           <Col>
             <h2 className="text-white">Welcome back, {firstName}!</h2>
@@ -138,7 +68,7 @@ const AdminDash = () => {
           ))}
         </Row>
       </Container>
-    </Container>
+    
   );
 };
 
