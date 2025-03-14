@@ -19,11 +19,10 @@ app.use(express.json());
 app.use('/api/volunteer-history', volunteerHistoryRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api', loginRouter);
-app.use('/api/user-profiles', userProfileRouter);
+app.use('/api/user', userProfileRouter);
 app.use('/api/match-volunteers', volunteerMatchRouter);
 app.use('/api/event-management', eventRouter);
 
-// Setting the server port
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);

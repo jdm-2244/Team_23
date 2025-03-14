@@ -1,34 +1,111 @@
-import React, { useState } from "react";
+// ProfileVolunteer.js
+import React, { useState, useEffect } from "react";
 import { Container, Row, Col, Form, Button, ListGroup, Card } from "react-bootstrap";
 import { Link, useNavigate } from "react-router-dom";
 import NavigationBar from "./NavigationBar";
 
 const ProfileVolunteer = () => {
   const navigate = useNavigate();
+
   const [profileData, setProfileData] = useState({
-    firstName: "John",
-    lastName: "Doe",
-    address: "1234 Elm Street",
-    city: "Houston",
-    state: "Texas",
-    zip: "77001",
-    skills: "Teaching, Writing, Coding",
-    timeAvailability: "Weekends and Evenings",
-    email: "johndoe@example.com",
-    password: "Password123!",
-    role: "Volunteer"
+    username: "",
+    fullName: "",
+    address1: "",
+    address2: "",
+    city: "",
+    state: "",
+    zip: "",
+    skills: "",
+    preferences: "",
+    availability: ""
   });
 
-  const handleChange = e => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const username = localStorage.getItem("username");
+        if (!username) {
+          console.error("No username in localStorage");
+          navigate("/login");
+          return;
+        }
+
+        const response = await fetch(
+          `http://localhost:3001/api/user-profiles/profiles/${username}`
+        );
+        if (!response.ok) {
+          console.error("Failed to fetch profile");
+          return;
+        }
+
+        const data = await response.json();
+
+        setProfileData({
+          username: data.username || "",
+          fullName: data.fullName || "",
+          address1: data.address1 || "",
+          address2: data.address2 || "",
+          city: data.city || "",
+          state: data.state || "",
+          zip: data.zip || "",
+          skills: Array.isArray(data.skills) ? data.skills.join(", ") : data.skills || "",
+          preferences: data.preferences || "",
+          availability: Array.isArray(data.availability)
+            ? data.availability.join(", ")
+            : data.availability || ""
+        });
+      } catch (err) {
+        console.error("Error fetching profile:", err);
+      }
+    };
+
+    fetchProfile();
+  }, [navigate]);
+
+  const handleChange = (e) => {
     const { name, value } = e.target;
-    setProfileData({ ...profileData, [name]: value });
+    setProfileData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSave = () => {
-    alert("Profile updated successfully");
+  const handleSave = async () => {
+    try {
+      const username = localStorage.getItem("username");
+      if (!username) {
+        alert("No username found. Please log in again.");
+        return;
+      }
+
+      const updatedProfile = {
+        ...profileData,
+        skills: profileData.skills.split(",").map((s) => s.trim()),
+        availability: profileData.availability.split(",").map((a) => a.trim())
+      };
+
+      const response = await fetch(
+        `http://localhost:3001/api/user-profiles/profiles/${username}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updatedProfile),
+        }
+      );
+
+      if (!response.ok) {
+        console.error("Failed to update profile");
+        alert("Profile update failed. Check the console for more info.");
+        return;
+      }
+
+      alert("Profile updated successfully!");
+    } catch (err) {
+      console.error("Error updating profile:", err);
+      alert("Something went wrong. Please check the console.");
+    }
   };
 
   const handleLogout = () => {
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
     navigate("/login");
   };
 
@@ -42,6 +119,7 @@ const ProfileVolunteer = () => {
         display: "flex"
       }}
     >
+      {/* Sidebar */}
       <div
         className="bg-dark text-white d-flex flex-column justify-content-between align-items-center rounded shadow-lg"
         style={{
@@ -80,6 +158,8 @@ const ProfileVolunteer = () => {
           🚪 Log Out
         </Button>
       </div>
+
+      {/* Main content */}
       <Container style={{ marginLeft: "220px", padding: "40px" }}>
         <NavigationBar />
         <Row className="mt-5">
@@ -88,38 +168,46 @@ const ProfileVolunteer = () => {
             <p className="text-white">Edit your information below.</p>
           </Col>
         </Row>
+
         <Row>
           <Col md={6} className="mb-4">
             <Card className="shadow-lg">
               <Card.Body>
-                <Form onSubmit={e => e.preventDefault()}>
+                <Form onSubmit={(e) => e.preventDefault()}>
+                  {/* Full Name */}
                   <Form.Group className="mb-3">
-                    <Form.Label>First Name</Form.Label>
+                    <Form.Label>Full Name</Form.Label>
                     <Form.Control
                       type="text"
-                      name="firstName"
-                      value={profileData.firstName}
+                      name="fullName"
+                      value={profileData.fullName}
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* Address 1 */}
                   <Form.Group className="mb-3">
-                    <Form.Label>Last Name</Form.Label>
+                    <Form.Label>Address 1</Form.Label>
                     <Form.Control
                       type="text"
-                      name="lastName"
-                      value={profileData.lastName}
+                      name="address1"
+                      value={profileData.address1}
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* Address 2 */}
                   <Form.Group className="mb-3">
-                    <Form.Label>Address</Form.Label>
+                    <Form.Label>Address 2</Form.Label>
                     <Form.Control
                       type="text"
-                      name="address"
-                      value={profileData.address}
+                      name="address2"
+                      value={profileData.address2}
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* City */}
                   <Form.Group className="mb-3">
                     <Form.Label>City</Form.Label>
                     <Form.Control
@@ -129,6 +217,8 @@ const ProfileVolunteer = () => {
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* State */}
                   <Form.Group className="mb-3">
                     <Form.Label>State</Form.Label>
                     <Form.Control
@@ -138,8 +228,10 @@ const ProfileVolunteer = () => {
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* Zip Code */}
                   <Form.Group className="mb-3">
-                    <Form.Label>Zip Code</Form.Label>
+                    <Form.Label>Zip</Form.Label>
                     <Form.Control
                       type="text"
                       name="zip"
@@ -147,8 +239,10 @@ const ProfileVolunteer = () => {
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* Skills */}
                   <Form.Group className="mb-3">
-                    <Form.Label>Skills</Form.Label>
+                    <Form.Label>Skills (comma-separated)</Form.Label>
                     <Form.Control
                       type="text"
                       name="skills"
@@ -156,43 +250,33 @@ const ProfileVolunteer = () => {
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* Preferences */}
                   <Form.Group className="mb-3">
-                    <Form.Label>Time Availability</Form.Label>
+                    <Form.Label>Preferences</Form.Label>
                     <Form.Control
                       type="text"
-                      name="timeAvailability"
-                      value={profileData.timeAvailability}
+                      name="preferences"
+                      value={profileData.preferences}
                       onChange={handleChange}
                     />
                   </Form.Group>
+
+                  {/* Availability */}
                   <Form.Group className="mb-3">
-                    <Form.Label>Email</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      value={profileData.email}
-                      onChange={handleChange}
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="password"
-                      value={profileData.password}
-                      onChange={handleChange}
-                    />
-                  </Form.Group>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Role</Form.Label>
+                    <Form.Label>Availability (comma-separated)</Form.Label>
                     <Form.Control
                       type="text"
-                      name="role"
-                      value={profileData.role}
-                      readOnly
+                      name="availability"
+                      value={profileData.availability}
+                      onChange={handleChange}
                     />
                   </Form.Group>
-                  <Button variant="success" onClick={handleSave} className="w-100">Save Profile</Button>
+
+                  {/* Save Button */}
+                  <Button variant="success" onClick={handleSave} className="w-100">
+                    Save Profile
+                  </Button>
                 </Form>
               </Card.Body>
             </Card>
