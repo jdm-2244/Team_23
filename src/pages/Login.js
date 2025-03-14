@@ -5,22 +5,18 @@ import { Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
-
-  // State for form inputs and potential error messages
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
-  // Handle form submission
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(''); // Clear any previous errors
+    setError('');
 
     try {
-      const response = await fetch('/api/login', {
+      const response = await fetch('http://localhost:3001/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // The back end expects "username" and "password", so we'll send email as "username"
         body: JSON.stringify({
           username: email,
           password: password,
@@ -30,15 +26,23 @@ const Login = () => {
       const data = await response.json();
 
       if (response.ok) {
-        // Login success: decide where to navigate based on role
         alert('Login successful!');
-        if (data.user && data.user.role === 'admin') {
+
+        if (data.user && data.user.username) {
+          localStorage.setItem("username", data.user.username);
+        }
+        if (data.user && data.user.role) {
+          localStorage.setItem("role", data.user.role);
+        }
+
+        if (!data.profileCompleted) {
+          navigate('/newuser');
+        } else if (data.user && data.user.role === 'admin') {
           navigate('/admin-dashboard');
         } else {
           navigate('/dashboard');
         }
       } else {
-        // Show error message returned from the server
         setError(data.error || 'Login failed. Please try again.');
       }
     } catch (err) {
@@ -48,15 +52,7 @@ const Login = () => {
   };
 
   return (
-    <Container
-      fluid
-      className="d-flex flex-column justify-content-between p-0"
-      style={{
-        background: 'linear-gradient(to right, #6a11cb, #2575fc)',
-        minHeight: '100vh',
-      }}
-    >
-      {/* Navbar */}
+    <Container fluid className="d-flex flex-column justify-content-between p-0" style={{ background: 'linear-gradient(to right, #6a11cb, #2575fc)', minHeight: '100vh' }}>
       <Navbar expand="lg" fixed="top" className="bg-transparent py-3">
         <Container className="d-flex justify-content-center">
           <Navbar.Brand className="text-white fw-bold fs-2" style={{ textShadow: "2px 2px 4px rgba(9, 7, 3, 2)" }}>
@@ -65,36 +61,16 @@ const Login = () => {
           <Navbar.Toggle aria-controls="basic-navbar-nav" />
           <Navbar.Collapse id="basic-navbar-nav" className="justify-content-center">
             <Nav className="fs-5 d-flex gap-3">
-              <Nav.Link
-                as={Link}
-                to="/"
-                className="text-white px-4 py-2 rounded-pill border border-white"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-              >
+              <Nav.Link as={Link} to="/" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
                 Home
               </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to="/faq"
-                className="text-white px-4 py-2 rounded-pill border border-white"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-              >
+              <Nav.Link as={Link} to="/faq" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
                 FAQ
               </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to="/about"
-                className="text-white px-4 py-2 rounded-pill border border-white"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-              >
+              <Nav.Link as={Link} to="/about" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
                 About Us
               </Nav.Link>
-              <Nav.Link
-                as={Link}
-                to="/contact"
-                className="text-white px-4 py-2 rounded-pill border border-white"
-                style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}
-              >
+              <Nav.Link as={Link} to="/contact" className="text-white px-4 py-2 rounded-pill border border-white" style={{ backgroundColor: 'rgba(255, 255, 255, 0.1)' }}>
                 Contact Us
               </Nav.Link>
             </Nav>
@@ -102,92 +78,48 @@ const Login = () => {
         </Container>
       </Navbar>
 
-      {/* Login Form Section */}
       <div className="d-flex flex-grow-1 align-items-center justify-content-center">
-        <Row 
-          className="shadow-lg rounded w-75 bg-white overflow-hidden" 
-          style={{ maxWidth: '1000px' }}
-        >
-          {/* Image Section */}
+        <Row className="shadow-lg rounded w-75 bg-white overflow-hidden" style={{ maxWidth: '1000px' }}>
           <Col md={6} className="d-none d-md-block position-relative p-0">
-            <div
-              style={{
-                backgroundImage: "url('/images/1654793377068.jpeg')",
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                height: '100%',
-                width: '100%',
-                position: 'absolute',
-                top: 0,
-                left: 0,
-              }}
-            ></div>
-            <div
-              className="position-absolute text-white text-center p-4"
-              style={{
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                width: '100%',
-                bottom: '0',
-              }}
-            >
+            <div style={{ backgroundImage: "url('/images/1654793377068.jpeg')", backgroundSize: 'cover', backgroundPosition: 'center', height: '100%', width: '100%', position: 'absolute', top: 0, left: 0 }}></div>
+            <div className="position-absolute text-white text-center p-4" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', width: '100%', bottom: '0' }}>
               <h3 className="fw-bold">Make a Difference</h3>
               <p>Join our community of volunteers and create positive change.</p>
             </div>
           </Col>
 
-          {/* Login Form Section */}
           <Col md={6} className="p-5 bg-white">
             <h2 className="mb-3 text-center fw-bold">Welcome Back</h2>
             <p className="text-center text-muted">Please sign in to your account</p>
 
-            {/* Display error message if any */}
             {error && (
               <div className="alert alert-danger text-center" role="alert">
                 {error}
               </div>
             )}
-            
+
             <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3">
                 <Form.Label>Email Address</Form.Label>
-                <Form.Control
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+                <Form.Control type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </Form.Group>
 
               <Form.Group className="mb-3">
                 <Form.Label>Password</Form.Label>
-                <Form.Control
-                  type="password"
-                  placeholder="Enter your password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
+                <Form.Control type="password" placeholder="Enter your password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </Form.Group>
 
               <Form.Group className="d-flex justify-content-between mb-3">
                 <Form.Check type="checkbox" label="Remember me" />
-                <a href="#" className="text-decoration-none">
-                  Forgot password?
-                </a>
+                <a href="#" className="text-decoration-none">Forgot password?</a>
               </Form.Group>
 
-              <Button variant="primary" type="submit" className="w-100">
-                Sign In
-              </Button>
+              <Button variant="primary" type="submit" className="w-100">Sign In</Button>
             </Form>
 
             <p className="mt-3 text-center">
-              Don't have an account?{' '}
-              <span
-                onClick={() => navigate('/signup')}
-                style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
-              >
+              Don't have an account?{" "}
+              <span onClick={() => navigate('/signup')} style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}>
                 Sign up now
               </span>
             </p>
@@ -195,9 +127,8 @@ const Login = () => {
         </Row>
       </div>
 
-      {/* Centered Footer */}
       <footer className="text-center p-3 text-white mt-auto" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
-        <p>&copy; 2025 ImpactNow. All Rights Reserved.</p>
+        <p>© 2025 ImpactNow. All Rights Reserved.</p>
         <p>Contact us: support@impactnow.com</p>
       </footer>
     </Container>
