@@ -10,6 +10,7 @@ console.log('Current working directory:', process.cwd());
 const express = require('express');
 const sgMail = require('@sendgrid/mail');
 const cors = require('cors');
+const pool = require('./config/database');
 require('dotenv').config();
 
 const volunteerHistoryRouter = require('./volunteerHistoryRoutes');
@@ -30,15 +31,24 @@ if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 3) {
   console.log('Warning: Valid SendGrid API key not found. Email functionality will not work.');
 }
 
-app.use(cors());
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true}
+));
 app.use(express.json());
+
+// Add this before your routes in server.js
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
+  next();
+});
 
 // API Routes
 app.use('/api/volunteer-history', volunteerHistoryRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api', loginRouter);
 app.use('/api/user', userProfileRouter);
-app.use('/api/match-volunteers', volunteerMatchRouter);
+app.use('/api/volunteer-matcher', volunteerMatchRouter);
 app.use('/api/event-management', eventRouter);
 
 app.get('/', (req, res) => {
@@ -58,7 +68,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
-  console.log(`connected to the database: ${process.env.DB_DATABASE} at ${process.env.DB_HOST}`)
+  console.log(`possible connection: ${process.env.DB_DATABASE} at ${process.env.DB_HOST}`)
+  console.log(`This is a test to just see if the server can actually connect to the db`)
 });
 
 module.exports = app;

@@ -1,0 +1,51 @@
+
+I changed the skills table by first deleting all of the data,
+dropping skill level column then adding back the information
+
+USE Volunteer_Org_Database;
+TRUNCATE TABLE Event_Skills;
+
+ALTER TABLE Event_Skills
+DROP COLUMN required_level;
+
+-- SQL to insert event-skill relationships into Event_Skills table
+-- Park Cleanup Day (Event ID: 1)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (1, 4);  -- Gardening
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (1, 8);  -- Organizing
+
+-- Food Drive (Event ID: 2)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (2, 5);  -- Cooking
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (2, 8);  -- Organizing
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (2, 10); -- Driving
+
+-- Library Book Drive (Event ID: 3)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (3, 8);  -- Organizing
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (3, 9);  -- Languages
+
+-- Youth Mentoring (Event ID: 4)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (4, 2);  -- Teaching
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (4, 9);  -- Languages
+
+-- Animal Care Day (Event ID: 5)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (5, 1);  -- First Aid
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (5, 3);  -- Animal Care
+
+-- Tech Help for Seniors (Event ID: 6)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (6, 2);  -- Teaching
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (6, 7);  -- Technology
+
+-- Disaster Prep Workshop (Event ID: 7)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (7, 1);  -- First Aid
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (7, 8);  -- Organizing
+
+-- School Garden Planting (Event ID: 8)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (8, 4);  -- Gardening
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (8, 2);  -- Teaching
+
+-- Beach Cleanup (Event ID: 9)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (9, 4);  -- Gardening
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (9, 8);  -- Organizing
+
+-- Community Center Renovation (Event ID: 10)
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (10, 6); -- Carpentry
+INSERT INTO Event_Skills (event_id, skill_id) VALUES (10, 8); -- Organizing

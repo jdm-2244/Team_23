@@ -1,6 +1,6 @@
 const request = require('supertest');
 const express = require('express');
-
+const pool = require('./config/database');
 // Fixed the import name to match the correct file name
 jest.mock('./volunteersMatchData', () => {
   // Use the actual data structure from volunteersMatchData.js

@@ -26,7 +26,7 @@ const VolunteerEventMatcher = () => {
   const fetchVolunteers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/match-volunteers/volunteers');
+      const response = await fetch('/api/volunteer-matcher/volunteers');
       if (!response.ok) {
         throw new Error('Failed to fetch volunteers');
       }

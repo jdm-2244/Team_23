@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-
+const pool = require('./config/database');
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
