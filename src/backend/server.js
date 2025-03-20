@@ -49,7 +49,7 @@ app.use('/api/notifications', notificationRouter);
 app.use('/api', loginRouter);
 app.use('/api/user', userProfileRouter);
 app.use('/api/volunteer-matcher', volunteerMatchRouter);
-app.use('/api/event-management', eventRouter);
+app.use('/api/events', eventRouter);
 
 app.get('/', (req, res) => {
   res.send('Volunteering Organization API is running');
