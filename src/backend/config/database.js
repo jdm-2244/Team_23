@@ -1,6 +1,7 @@
+require("dotenv").config({ path: "../../.env" });
+
 const mysql = require('mysql2/promise');
 
-// Create the connection pool
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
@@ -11,7 +12,6 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
-// Test the connection
 pool.getConnection()
   .then(connection => {
     console.log('Actual test: Database connected successfully');
@@ -21,11 +21,9 @@ pool.getConnection()
     console.error('Database connection failed:', err);
   });
 
-// In database.js
 pool.getConnection()
   .then(connection => {
-    console.log('Database connected successfully');
-    // Test a simple query
+    console.log('Database connected successfully'); 
     return connection.query('SELECT 1 as test')
       .then(([rows]) => {
         console.log('Database query test successful:', rows);
