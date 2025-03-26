@@ -5,7 +5,8 @@ import Sidebar from './Admin_sidebar';
 import NavigationBar from './NavigationBar';
 
 // Define a consistent API base URL
-const API_BASE_URL = '/api/volunteer-matcher';
+const API_BASE_URL = 'http://localhost:3001/api/volunteer-matcher';
+
 
 // Helper function for authenticated API calls
 const fetchWithAuth = async (endpoint, options = {}) => {
