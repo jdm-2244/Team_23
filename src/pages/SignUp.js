@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 const SignUp = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
+    username: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -13,6 +14,11 @@ const SignUp = () => {
   });
 
   const [error, setError] = useState("");
+  const [passwordStrength, setPasswordStrength] = useState({
+    message: "",
+    isValid: false,
+    color: "",
+  });
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -20,18 +26,65 @@ const SignUp = () => {
       ...prev,
       [name]: value,
     }));
+
+    // Check password strength when password field changes
+    if (name === "password") {
+      validatePasswordStrength(value);
+    }
+  };
+
+  const validatePasswordStrength = (password) => {
+    const minLength = 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumbers = /\d/.test(password);
+    const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    if (password.length === 0) {
+      setPasswordStrength({
+        message: "",
+        isValid: false,
+        color: "",
+      });
+    } else if (password.length < minLength) {
+      setPasswordStrength({
+        message: "Password is too short (minimum 8 characters)",
+        isValid: false,
+        color: "text-danger",
+      });
+    } else if (!(hasUpperCase && hasLowerCase && hasNumbers && hasSpecialChar)) {
+      setPasswordStrength({
+        message:
+          "Password should include uppercase, lowercase, numbers, and special characters",
+        isValid: false,
+        color: "text-warning",
+      });
+    } else {
+      setPasswordStrength({
+        message: "Password strength: Strong",
+        isValid: true,
+        color: "text-success",
+      });
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
 
+    // Validation checks
     if (formData.role === "") {
-      alert("Please select if you are signing up as a Volunteer or Admin.");
+      setError("Please select if you are signing up as a Volunteer or Admin.");
       return;
     }
+    
+    if (!passwordStrength.isValid) {
+      setError("Please create a stronger password.");
+      return;
+    }
+    
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match!");
+      setError("Passwords do not match!");
       return;
     }
 
@@ -40,7 +93,7 @@ const SignUp = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          username: formData.email,
+          username: formData.username,
           password: formData.password,
           email: formData.email,
           role: formData.role,
@@ -100,23 +153,72 @@ const SignUp = () => {
 
             <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3">
+                <Form.Label>Username *</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  name="username" 
+                  placeholder="Enter username" 
+                  required 
+                  onChange={handleChange}
+                  value={formData.username} 
+                />
+                <Form.Text className="text-muted">
+                  You will use your username to log in.
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
                 <Form.Label>Email *</Form.Label>
-                <Form.Control type="email" name="email" placeholder="Enter email" required onChange={handleChange} />
+                <Form.Control 
+                  type="email" 
+                  name="email" 
+                  placeholder="Enter email" 
+                  required 
+                  onChange={handleChange}
+                  value={formData.email} 
+                />
+                <Form.Text className="text-muted">
+                  We'll send a verification link to this email.
+                </Form.Text>
               </Form.Group>
 
               <Form.Group className="mb-3">
                 <Form.Label>Password *</Form.Label>
-                <Form.Control type="password" name="password" placeholder="Enter password" required onChange={handleChange} />
+                <Form.Control 
+                  type="password" 
+                  name="password" 
+                  placeholder="Enter password" 
+                  required 
+                  onChange={handleChange}
+                  value={formData.password} 
+                />
+                {passwordStrength.message && (
+                  <Form.Text className={passwordStrength.color}>
+                    {passwordStrength.message}
+                  </Form.Text>
+                )}
               </Form.Group>
 
               <Form.Group className="mb-3">
                 <Form.Label>Confirm Password *</Form.Label>
-                <Form.Control type="password" name="confirmPassword" placeholder="Confirm password" required onChange={handleChange} />
+                <Form.Control 
+                  type="password" 
+                  name="confirmPassword" 
+                  placeholder="Confirm password" 
+                  required 
+                  onChange={handleChange}
+                  value={formData.confirmPassword} 
+                />
               </Form.Group>
 
               <Form.Group className="mb-3">
                 <Form.Label>Are you registering as a Volunteer or an Admin? *</Form.Label>
-                <Form.Select name="role" required onChange={handleChange}>
+                <Form.Select 
+                  name="role" 
+                  required 
+                  onChange={handleChange}
+                  value={formData.role}
+                >
                   <option value="">Select an option</option>
                   <option value="volunteer">Volunteer</option>
                   <option value="admin">Admin</option>

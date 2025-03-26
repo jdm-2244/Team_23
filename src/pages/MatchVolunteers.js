@@ -4,6 +4,29 @@ import { Link, useNavigate } from "react-router-dom";
 import Sidebar from './Admin_sidebar';
 import NavigationBar from './NavigationBar';
 
+// Define a consistent API base URL
+const API_BASE_URL = 'http://localhost:3001/api/volunteer-matcher';
+
+
+// Helper function for authenticated API calls
+const fetchWithAuth = async (endpoint, options = {}) => {
+  // Get auth token from localStorage or wherever you store it
+  const token = localStorage.getItem('authToken') || 'your-auth-token';
+  
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`
+  };
+  
+  return fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      ...defaultHeaders,
+      ...options.headers
+    }
+  });
+};
+
 const VolunteerEventMatcher = () => {
   const navigate = useNavigate();
   // State for volunteers and events
@@ -26,7 +49,7 @@ const VolunteerEventMatcher = () => {
   const fetchVolunteers = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/volunteer-matcher/volunteers');
+      const response = await fetchWithAuth('/volunteers');
       if (!response.ok) {
         throw new Error('Failed to fetch volunteers');
       }
@@ -64,7 +87,7 @@ const VolunteerEventMatcher = () => {
   const fetchEvents = async () => {
     setIsLoading(true);
     try {
-      const response = await fetch('/api/match-volunteers/events');
+      const response = await fetchWithAuth('/events');
       if (!response.ok) {
         throw new Error('Failed to fetch events');
       }
@@ -176,7 +199,7 @@ const VolunteerEventMatcher = () => {
       // If search term is longer than 2 characters, search via API
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/match-volunteers/volunteers/search?term=${encodeURIComponent(term)}`);
+        const response = await fetchWithAuth(`/volunteers/search?term=${encodeURIComponent(term)}`);
         if (!response.ok) {
           throw new Error('Search failed');
         }
@@ -220,7 +243,7 @@ const VolunteerEventMatcher = () => {
       // If search term is longer than 2 characters, search via API
       setIsLoading(true);
       try {
-        const response = await fetch(`/api/match-volunteers/events/search?term=${encodeURIComponent(term)}`);
+        const response = await fetchWithAuth(`/events/search?term=${encodeURIComponent(term)}`);
         if (!response.ok) {
           throw new Error('Search failed');
         }
@@ -254,7 +277,7 @@ const VolunteerEventMatcher = () => {
       try {
         // For simplicity, we'll use the first skill to find matching events
         const skill = volunteer.skills[0];
-        const response = await fetch(`/api/match-volunteers/events/skills/${encodeURIComponent(skill)}`);
+        const response = await fetchWithAuth(`/events/skills/${encodeURIComponent(skill)}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch matching events');
@@ -300,11 +323,8 @@ const VolunteerEventMatcher = () => {
     
     setIsLoading(true);
     try {
-      const response = await fetch('/api/match-volunteers/match', {
+      const response = await fetchWithAuth('/match', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
         body: JSON.stringify({
           username: selectedVolunteer.id, // Using username as ID
           eventId: eventId

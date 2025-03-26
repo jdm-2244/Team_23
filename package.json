@@ -4,9 +4,11 @@
   "private": true,
   "dependencies": {
     "@sendgrid/mail": "^8.1.4",
+    "bcrypt": "^5.1.1",
     "bootstrap": "^5.3.3",
     "cors": "^2.8.5",
     "cra-template": "1.2.0",
+    "crypto": "^1.0.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "express-validator": "^7.2.1",

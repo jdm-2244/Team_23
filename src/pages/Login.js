@@ -5,7 +5,7 @@ import { Link } from "react-router-dom";
 
 const Login = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
 
@@ -18,7 +18,7 @@ const Login = () => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          username: email,
+          username: username,
           password: password,
         }),
       });
@@ -100,8 +100,8 @@ const Login = () => {
 
             <Form onSubmit={handleSubmit}>
               <Form.Group className="mb-3">
-                <Form.Label>Email Address</Form.Label>
-                <Form.Control type="email" placeholder="Enter your email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+                <Form.Label>Enter Username</Form.Label>
+                <Form.Control type="username" placeholder="Enter your email" value={username} onChange={(e) => setUsername(e.target.value)} required />
               </Form.Group>
 
               <Form.Group className="mb-3">

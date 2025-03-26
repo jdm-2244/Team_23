@@ -1,0 +1,4 @@
+type this into terminal
+npm install bcrypt crypto
+
+node password-migration.js

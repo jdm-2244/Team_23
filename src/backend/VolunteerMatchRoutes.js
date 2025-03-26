@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./config/database');
+
 // Authentication middleware
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -11,9 +12,18 @@ const authenticateToken = (req, res, next) => {
   }
 
   // In a real application, you'd verify the JWT token here
-  // For now, we'll assume a valid admin token
-  req.user = { role: 'admin' };
-  next();
+  try {
+    // If using JWT:
+    // const user = jwt.verify(token, process.env.JWT_SECRET);
+    // req.user = user;
+
+    // For testing/development:
+    req.user = { role: 'admin' };
+    next();
+  } catch (error) {
+    console.error('Token verification failed:', error);
+    return res.status(403).json({ error: 'Invalid token' });
+  }
 };
 
 // Middleware to verify admin access
@@ -24,6 +34,17 @@ const verifyAdminAccess = (req, res, next) => {
     res.status(403).json({ error: 'Access denied. Admin privileges required.' });
   }
 };
+
+// Simple test query (no authentication for easy testing)
+router.get('/test-query', async (req, res) => {
+  try {
+    const [result] = await pool.query('SELECT COUNT(*) as count FROM Events');
+    res.json({ success: true, count: result[0].count });
+  } catch (error) {
+    console.error('Test query failed:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 /**
  * @route   GET /api/volunteer-matcher/volunteers
@@ -481,6 +502,49 @@ router.delete('/match/:id', authenticateToken, verifyAdminAccess, async (req, re
   } catch (error) {
     console.error('Error removing match:', error);
     res.status(500).json({ error: 'Server error while removing match' });
+  }
+});
+
+/**
+ * @route   POST /api/volunteer-matcher/auth/token
+ * @desc    Get authentication token (for testing)
+ * @access  Public
+ */
+router.post('/auth/token', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+    
+    // For a real application, you would validate credentials against your database
+    // For this example, we'll just check if the username exists and starts with 'admin_'
+    
+    const [userRows] = await pool.query('SELECT * FROM Users WHERE username = ?', [username]);
+    
+    if (userRows.length === 0) {
+      return res.status(401).json({ error: 'Invalid credentials' });
+    }
+    
+    const user = userRows[0];
+    
+    // In a real application, you would verify the password hash
+    // Here we'll just check if the username starts with 'admin_'
+    if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'Admin privileges required' });
+    }
+    
+    // In a real application, you would sign a JWT token
+    // const token = jwt.sign({ id: user.username, role: user.role }, 'your-secret-key', { expiresIn: '1h' });
+    
+    // For testing purposes
+    const token = 'test-token-for-' + username;
+    
+    res.json({ token });
+  } catch (error) {
+    console.error('Error generating token:', error);
+    res.status(500).json({ error: 'Server error while generating token' });
   }
 });
 
