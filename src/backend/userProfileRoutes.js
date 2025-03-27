@@ -64,12 +64,15 @@ router.post("/profiles", async (req, res) => {
 
 // Use put to update an existing profile
 router.put("/profiles/:username", async (req, res) => {
-  const { fullName, location } = req.body;
+  const { firstName, lastName, location } = req.body;
+
+  console.log("PUT request body:", req.body);
+  console.log("Target username:", req.params.username);
 
   try {
     const [result] = await pool.query(
-      "UPDATE User_Profile SET Name = ?, location = ? WHERE user_id = ?",
-      [fullName, location, req.params.username]
+      "UPDATE User_Profile SET first_name = ?, last_name = ?, location = ? WHERE user_id = ?",
+      [firstName, lastName, location, req.params.username]
     );
 
     if (result.affectedRows === 0) {
@@ -78,10 +81,15 @@ router.put("/profiles/:username", async (req, res) => {
 
     res.json({
       message: "Profile updated successfully.",
-      profile: { username: req.params.username, fullName, location }
+      profile: {
+        username: req.params.username,
+        firstName,
+        lastName,
+        location
+      }
     });
   } catch (error) {
-    console.error("Error updating profile:", error);
+    console.error("Error updating profile:", error); 
     res.status(500).json({ error: "Database error." });
   }
 });
