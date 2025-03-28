@@ -1,79 +1,166 @@
 const request = require('supertest');
 const express = require('express');
 const userProfileRouter = require('./userProfileRoutes');
-const { addUserProfile, userProfiles } = require('./userProfileData');
+const pool = require('./config/database');
 
 const app = express();
 app.use(express.json());
 app.use('/api/user', userProfileRouter);
 
-beforeEach(() => {
-    userProfiles.length = 0; // Clear the mock data before each test
-    addUserProfile({
-        id: 1,
-        username: 'test_user',
-        location: 'Houston',
-        skills: ['coding', 'design'],
-        preferences: ['remote'],
-        availability: ['weekends']
-    });
-});
+describe('User Profile Routes (DB)', () => {
+  const testUser = {
+    username: 'test_user_coverage',
+    firstName: 'Test',
+    lastName: 'Coverage',
+    location: 'Nowhere'
+  };
 
-describe('User Profile Routes', () => {
-    test('GET /api/user/profiles - should return all profiles', async () => {
-        const response = await request(app).get('/api/user/profiles');
-        expect(response.statusCode).toBe(200);
-        expect(response.body.length).toBe(1);
+  beforeAll(async () => {
+    await pool.query("DELETE FROM User_Profile WHERE user_id = ?", [testUser.username]);
+  });
+
+  afterAll(async () => {
+    await pool.query("DELETE FROM User_Profile WHERE user_id = ?", [testUser.username]);
+    await pool.end();
+  });
+
+  // Create
+  test('POST - create profile', async () => {
+    const res = await request(app)
+      .post('/api/user/profiles')
+      .send(testUser);
+    expect(res.statusCode).toBe(201);
+    expect(res.body.profile.username).toBe(testUser.username);
+  });
+
+  test('POST - fail due to missing fields', async () => {
+    const res = await request(app)
+      .post('/api/user/profiles')
+      .send({ username: testUser.username });
+    expect(res.statusCode).toBe(400);
+  });
+
+  test('POST - fail because profile already exists', async () => {
+    const res = await request(app)
+      .post('/api/user/profiles')
+      .send(testUser);
+    expect(res.statusCode).toBe(400);
+  });
+
+  // Read
+  test('GET - fetch all profiles', async () => {
+    const res = await request(app).get('/api/user/profiles');
+    expect(res.statusCode).toBe(200);
+    expect(Array.isArray(res.body)).toBe(true);
+  });
+
+  test('GET - fetch profile by username', async () => {
+    const res = await request(app).get(`/api/user/profiles/${testUser.username}`);
+    expect(res.statusCode).toBe(200);
+    expect(res.body.user_id).toBe(testUser.username);
+  });
+
+  test('GET - 404 for non-existent profile', async () => {
+    const res = await request(app).get('/api/user/profiles/fake_user_xyz');
+    expect(res.statusCode).toBe(404);
+  });
+
+  // Update
+  test('PUT - update existing profile', async () => {
+    const res = await request(app)
+      .put(`/api/user/profiles/${testUser.username}`)
+      .send({
+        firstName: 'Updated',
+        lastName: 'Coverage',
+        location: 'Texas'
+      });
+    expect(res.statusCode).toBe(200);
+    expect(res.body.profile.location).toBe('Texas');
+  });
+
+  test('PUT - 404 updating non-existent profile', async () => {
+    const res = await request(app)
+      .put('/api/user/profiles/fake_user_xyz')
+      .send({
+        firstName: 'Nope',
+        lastName: 'User',
+        location: 'Nowhere'
+      });
+    expect(res.statusCode).toBe(404);
+  });
+
+  // Delete
+  test('DELETE - delete profile', async () => {
+    const res = await request(app).delete(`/api/user/profiles/${testUser.username}`);
+    expect(res.statusCode).toBe(200);
+  });
+
+  test('DELETE - 404 deleting non-existent profile', async () => {
+    const res = await request(app).delete('/api/user/profiles/fake_user_xyz');
+    expect(res.statusCode).toBe(404);
+  });
+
+  test('GET - simulate DB error on all profiles', async () => {
+    const originalQuery = pool.query;
+    pool.query = jest.fn(() => { throw new Error("DB crash"); });
+
+    const res = await request(app).get('/api/user/profiles');
+    expect(res.statusCode).toBe(500);
+
+    pool.query = originalQuery;
+  });
+
+  test('GET - simulate DB error on profile by username', async () => {
+    const originalQuery = pool.query;
+    pool.query = jest.fn(() => { throw new Error("DB crash"); });
+
+    const res = await request(app).get(`/api/user/profiles/${testUser.username}`);
+    expect(res.statusCode).toBe(500);
+
+    pool.query = originalQuery;
+  });
+
+  test('POST - simulate DB error on insert', async () => {
+    const originalQuery = pool.query;
+    pool.query = jest.fn((sql) => {
+      if (sql.startsWith("SELECT")) return Promise.resolve([[]]);
+      throw new Error("DB crash");
     });
 
-    test('GET /api/user/profiles/:username - should return a specific profile', async () => {
-        const response = await request(app).get('/api/user/profiles/test_user');
-        expect(response.statusCode).toBe(200);
-        expect(response.body.username).toBe('test_user');
+    const res = await request(app).post('/api/user/profiles').send({
+      username: 'crash_user',
+      firstName: 'Crash',
+      lastName: 'Dummy',
+      location: 'Testland'
     });
+    expect(res.statusCode).toBe(500);
 
-    test('GET /api/user/profiles/:username - should return 404 for unknown profile', async () => {
-        const response = await request(app).get('/api/user/profiles/unknown_user');
-        expect(response.statusCode).toBe(404);
-    });
+    pool.query = originalQuery;
+  });
 
-    test('POST /api/user/profiles - should create a new profile', async () => {
-        const newProfile = {
-            username: 'new_user',
-            location: 'New York',
-            skills: ['writing'],
-            preferences: ['in-person'],
-            availability: ['weekdays']
-        };
-        const response = await request(app).post('/api/user/profiles').send(newProfile);
-        expect(response.statusCode).toBe(201);
-        expect(response.body.profile.username).toBe('new_user');
-    });
+  test('PUT - simulate DB error', async () => {
+    const originalQuery = pool.query;
+    pool.query = jest.fn(() => { throw new Error("DB crash"); });
 
-    test('POST /api/user/profiles - should not create a profile with missing fields', async () => {
-        const response = await request(app).post('/api/user/profiles').send({ username: 'incomplete_user' });
-        expect(response.statusCode).toBe(400);
-    });
+    const res = await request(app)
+      .put(`/api/user/profiles/${testUser.username}`)
+      .send({
+        firstName: 'Crash',
+        lastName: 'Dummy',
+        location: 'Nowhere'
+      });
+    expect(res.statusCode).toBe(500);
 
-    test('PUT /api/user/profiles/:username - should update a profile', async () => {
-        const updatedData = { location: 'Austin' };
-        const response = await request(app).put('/api/user/profiles/test_user').send(updatedData);
-        expect(response.statusCode).toBe(200);
-        expect(response.body.profile.location).toBe('Austin');
-    });
+    pool.query = originalQuery;
+  });
 
-    test('PUT /api/user/profiles/:username - should return 404 for non-existing profile', async () => {
-        const response = await request(app).put('/api/user/profiles/non_existing_user').send({ location: 'Dallas' });
-        expect(response.statusCode).toBe(404);
-    });
+  test('DELETE - simulate DB error', async () => {
+    const originalQuery = pool.query;
+    pool.query = jest.fn(() => { throw new Error("DB crash"); });
 
-    test('DELETE /api/user/profiles/:username - should delete a profile', async () => {
-        const response = await request(app).delete('/api/user/profiles/test_user');
-        expect(response.statusCode).toBe(200);
-    });
+    const res = await request(app).delete(`/api/user/profiles/${testUser.username}`);
+    expect(res.statusCode).toBe(500);
 
-    test('DELETE /api/user/profiles/:username - should return 404 for non-existing profile', async () => {
-        const response = await request(app).delete('/api/user/profiles/non_existing_user');
-        expect(response.statusCode).toBe(404);
-    });
+    pool.query = originalQuery;
+  });
 });

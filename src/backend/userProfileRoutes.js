@@ -1,60 +1,50 @@
 const express = require("express");
 const router = express.Router();
-const pool = require("./config/database"); // Added MySQL connection pool
+const pool = require("./config/database");
 
-// Get to grab all profiles from database. 
+// Get all of the profiles
 router.get("/profiles", async (req, res) => {
-  try
-  {
-    const[rows] = await pool.query("SELECT * FROM User_Profile");
+  try {
+    const [rows] = await pool.query("SELECT * FROM User_Profile");
     res.json(rows);
-  }
-  catch(error)
-  {
+  } catch (error) {
     console.error("Error fetching profiles:", error);
-    res.status(500).json({ error: "Database error."});
+    res.status(500).json({ error: "Database error." });
   }
 });
 
-// Get to grab a profile by username
+// Get a profile by username
 router.get("/profiles/:username", async (req, res) => {
-  try{
+  try {
     const [rows] = await pool.query("SELECT * FROM User_Profile WHERE user_id = ?", [req.params.username]);
-    if (rows.length === 0)
-    {
-      return res.status(404).json({ error: "Profile not found. "});
+    if (rows.length === 0) {
+      return res.status(404).json({ error: "Profile not found." });
     }
     res.json(rows[0]);
-  } catch (error)
-  {
+  } catch (error) {
     console.error("Error fetching profile:", error);
-    res.status(500).json({ error: "Database error. "});
+    res.status(500).json({ error: "Database error." });
   }
 });
 
-// Use post to post a new profile
+// POST used for new profile
 router.post("/profiles", async (req, res) => {
-  const { username, fullName, location } = req.body;
-  // Check required fields
-  if (!username || !fullName || !location) {
-    return res.status(400).json({ error: "All required fields are missing or invalid." });
+  const { username, firstName, lastName, location } = req.body;
+  if (!username || !firstName || !lastName || !location) {
+    return res.status(400).json({ error: "Missing required fields." });
   }
-
   try {
-    // Now check if the profile already exists. 
     const [existing] = await pool.query("SELECT * FROM User_Profile WHERE user_id = ?", [username]);
     if (existing.length > 0) {
       return res.status(400).json({ error: "Profile already exists." });
     }
-    // Next insert new profile 
     await pool.query(
-      "INSERT INTO User_Profile (user_id, Name, location) VALUES (?, ?, ?)",
-      [username, fullName, location]
+      "INSERT INTO User_Profile (user_id, first_name, last_name, location) VALUES (?, ?, ?, ?)",
+      [username, firstName, lastName, location]
     );
-
     res.status(201).json({
       message: "Profile created successfully.",
-      profile: { username, fullName, location }
+      profile: { username, firstName, lastName, location }
     });
   } catch (error) {
     console.error("Error creating profile:", error);
@@ -62,50 +52,37 @@ router.post("/profiles", async (req, res) => {
   }
 });
 
-// Use put to update an existing profile
+// PUT to update the profile
 router.put("/profiles/:username", async (req, res) => {
   const { firstName, lastName, location } = req.body;
-
-  console.log("PUT request body:", req.body);
-  console.log("Target username:", req.params.username);
-
   try {
     const [result] = await pool.query(
       "UPDATE User_Profile SET first_name = ?, last_name = ?, location = ? WHERE user_id = ?",
       [firstName, lastName, location, req.params.username]
     );
-
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Profile not found." });
     }
-
     res.json({
       message: "Profile updated successfully.",
-      profile: {
-        username: req.params.username,
-        firstName,
-        lastName,
-        location
-      }
+      profile: { username: req.params.username, firstName, lastName, location }
     });
   } catch (error) {
-    console.error("Error updating profile:", error); 
+    console.error("Error updating profile:", error);
     res.status(500).json({ error: "Database error." });
   }
 });
 
-// DELETE a profile
+// Delete the profile
 router.delete("/profiles/:username", async (req, res) => {
   try {
     const [result] = await pool.query(
       "DELETE FROM User_Profile WHERE user_id = ?",
       [req.params.username]
     );
-
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: "Profile not found." });
     }
-
     res.json({
       message: "Profile deleted successfully.",
       profile: { username: req.params.username }
