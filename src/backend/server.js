@@ -19,6 +19,9 @@ const loginRouter = require('./loginRoutes');
 const userProfileRouter = require('./userProfileRoutes');
 const volunteerMatchRouter = require('./VolunteerMatchRoutes');
 const eventRouter = require('./eventManagementRoutes');
+const eventSearchRouter = require('./eventSearchRoutes');
+const singleVolunteerHistoryRouter = require('./singleVolunteerHistoryRoutes');
+
 console.log("SendGrid API Key:", process.env.SENDGRID_API_KEY ? "Loaded" : "Not Loaded");
 
 const app = express();
@@ -50,6 +53,9 @@ app.use('/api', loginRouter);
 app.use('/api/user', userProfileRouter);
 app.use('/api/volunteer-matcher', volunteerMatchRouter);
 app.use('/api/events', eventRouter);
+app.use('/api/event-search', eventSearchRouter);
+app.use('/api/single-volunteer-history', singleVolunteerHistoryRouter);
+
 
 app.get('/', (req, res) => {
   res.send('Volunteering Organization API is running');

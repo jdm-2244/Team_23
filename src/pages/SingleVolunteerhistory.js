@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Form, Button, Alert } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import NavigationBar from './NavigationBar';
+import axios from 'axios';
 
 const VolunteerHistory = () => {
   const navigate = useNavigate();
@@ -9,85 +10,97 @@ const VolunteerHistory = () => {
   const [dateFilter, setDateFilter] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
-
-  // Enhanced volunteer records with all event management fields
-  const [volunteerRecords, setVolunteerRecords] = useState([
-    {
-      id: 1,
-      volunteerName: "John Doe",
-      eventName: "Community Garden Clean-up",
-      eventDate: "2025-01-15",
-      checkInTime: "09:00",
-      checkOutTime: "12:00",
-      hoursServed: 3,
-      status: "Completed",
-      location: "Community Garden",
-      skills: ["Gardening", "Physical Labor"],
-      maxVolunteers: 20,
-      description: "Annual community garden maintenance",
-      checkedIn: true,
-      feedback: "Great work and attitude",
-      role: "General Volunteer"
-    }
-  ]);
-
-  // Validation schema
-  const validateRecord = (record) => {
-    const errors = [];
-    
-    // Required field validations
-    if (!record.volunteerName) errors.push("Volunteer name is required");
-    if (!record.eventName) errors.push("Event name is required");
-    if (!record.eventDate) errors.push("Event date is required");
-    if (!record.status) errors.push("Status is required");
-    
-    // Field length validations
-    if (record.volunteerName?.length > 100) errors.push("Volunteer name must be less than 100 characters");
-    if (record.eventName?.length > 100) errors.push("Event name must be less than 100 characters");
-    if (record.description?.length > 500) errors.push("Description must be less than 500 characters");
-    
-    // Type validations
-    if (record.hoursServed && isNaN(record.hoursServed)) errors.push("Hours served must be a number");
-    if (record.maxVolunteers && isNaN(record.maxVolunteers)) errors.push("Max volunteers must be a number");
-    
-    // Date validations
-    if (record.eventDate && !isValidDate(record.eventDate)) errors.push("Invalid event date");
-    
-    return errors;
+  const [volunteerRecords, setVolunteerRecords] = useState([]);
+  
+  // Get current username from localStorage or session
+  // Replace this with how you currently store the logged-in user
+  const getCurrentUsername = () => {
+    return localStorage.getItem('username') || sessionStorage.getItem('username'); 
   };
+  
+  // Initial data loading
+  useEffect(() => {
+    const fetchUserHistory = async () => {
+      setLoading(true);
+      try {
+        const username = getCurrentUsername();
+        
+        if (!username) {
+          // Redirect to login if no username found
+          navigate('/login', { state: { from: '/volunteer-history' } });
+          return;
+        }
+        
+        // Use the endpoint that fetches only the current user's history
+        // Pass username in header if you don't have proper authentication middleware yet
+        const response = await axios.get('http://localhost:3001/api/volunteer-history/my-history', {
+          headers: {
+            'x-username': username // Remove this once proper auth is implemented
+          }
+        });
+        
+        setVolunteerRecords(response.data);
+        setError('');
+      } catch (err) {
+        console.error('Error fetching your volunteer history:', err);
+        setError('Failed to load your volunteer history. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const isValidDate = (dateString) => {
-    const date = new Date(dateString);
-    return date instanceof Date && !isNaN(date);
-  };
+    fetchUserHistory();
+  }, [navigate]);
 
-  // Filter records based on search term and date
-  const filteredRecords = volunteerRecords.filter(record => {
-    const matchesSearch = searchTerm === '' || 
-      record.volunteerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      record.eventName.toLowerCase().includes(searchTerm.toLowerCase());
+  // Handle filtering
+  useEffect(() => {
+    if (!searchTerm && !dateFilter) return; // Skip if no filters
     
-    const matchesDate = dateFilter === '' || 
-      record.eventDate.startsWith(dateFilter);
-    
-    return matchesSearch && matchesDate;
-  });
+    const fetchFilteredData = async () => {
+      setLoading(true);
+      try {
+        const username = getCurrentUsername();
+        
+        // For this demo, we'll refilter the data client-side
+        // In a real app, you might want to send these filters to the server
+        const response = await axios.get('http://localhost:3001/api/volunteer-history/my-history', {
+          params: {
+            search: searchTerm,
+            date: dateFilter
+          },
+          headers: {
+            'x-username': username // Remove this once proper auth is implemented
+          }
+        });
+        
+        setVolunteerRecords(response.data);
+        setError('');
+      } catch (err) {
+        console.error('Error fetching filtered data:', err);
+        setError('Failed to apply filters. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const exportRecord = (recordId) => {
-    const record = volunteerRecords.find(r => r.id === recordId);
-    if (!record) {
-      setError('Record not found');
-      return;
+    // Debounce the search
+    const timeoutId = setTimeout(() => {
+      fetchFilteredData();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [searchTerm, dateFilter]);
+
+  // Export a record
+  const exportRecord = async (recordId) => {
+    try {
+      const response = await axios.get(`http://localhost:3001/api/volunteer-history/export/${recordId}`);
+      alert('Record exported successfully!');
+      // For a real app, you'd handle the file download here
+    } catch (err) {
+      console.error('Error exporting record:', err);
+      setError(err.response?.data?.error || 'Failed to export record');
     }
-
-    const validationErrors = validateRecord(record);
-    if (validationErrors.length > 0) {
-      setError(`Cannot export invalid record: ${validationErrors.join(', ')}`);
-      return;
-    }
-
-    // Export logic here
-    console.log('Exporting record:', record);
   };
 
   return (
@@ -118,10 +131,10 @@ const VolunteerHistory = () => {
           <h5 className="text-center mb-4">Filters</h5>
           <Form>
             <Form.Group className="mb-3">
-              <Form.Label>Search</Form.Label>
+              <Form.Label>Search Events</Form.Label>
               <Form.Control
                 type="text"
-                placeholder="Search volunteers or events..."
+                placeholder="Search events..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -140,7 +153,7 @@ const VolunteerHistory = () => {
         <Button
           variant="danger"
           className="w-100 mt-3"
-          onClick={() => navigate('/admin-dashboard')}
+          onClick={() => navigate('/dashboard')}
         >
           ← Back to Dashboard
         </Button>
@@ -158,75 +171,90 @@ const VolunteerHistory = () => {
           <Col>
             <Card className="shadow-lg">
               <Card.Header className="bg-dark text-white d-flex justify-content-between align-items-center">
-                <h2 className="mb-0">Volunteer History</h2>
-                <Button variant="outline-light" size="sm">
-                  Export All Records
-                </Button>
+                <h2 className="mb-0">My Volunteer History</h2>
               </Card.Header>
               <Card.Body>
-                <Table responsive striped hover>
-                  <thead>
-                    <tr>
-                      <th>Volunteer Name</th>
-                      <th>Event</th>
-                      <th>Date</th>
-                      <th>Location</th>
-                      <th>Check In/Out</th>
-                      <th>Hours</th>
-                      <th>Skills Used</th>
-                      <th>Status</th>
-                      <th>Role</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredRecords.map((record) => (
-                      <tr key={record.id}>
-                        <td>{record.volunteerName}</td>
-                        <td>
-                          <div>{record.eventName}</div>
-                          <small className="text-muted">{record.description}</small>
-                        </td>
-                        <td>{record.eventDate}</td>
-                        <td>{record.location}</td>
-                        <td>
-                          {record.checkInTime} - {record.checkOutTime}
-                        </td>
-                        <td>{record.hoursServed}</td>
-                        <td>
-                          {record.skills.map((skill, index) => (
-                            <span key={index} className="badge bg-info me-1">
-                              {skill}
-                            </span>
-                          ))}
-                        </td>
-                        <td>
-                          <span className={`badge ${record.status === 'Completed' ? 'bg-success' : 'bg-warning'}`}>
-                            {record.status}
-                          </span>
-                        </td>
-                        <td>{record.role}</td>
-                        <td>
-                          <Button 
-                            variant="outline-primary" 
-                            size="sm" 
-                            className="me-2"
-                            onClick={() => navigate(`/volunteer-details/${record.id}`)}
-                          >
-                            View Details
-                          </Button>
-                          <Button 
-                            variant="outline-secondary" 
-                            size="sm"
-                            onClick={() => exportRecord(record.id)}
-                          >
-                            Export
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
+                {loading && (
+                  <div className="text-center py-4">
+                    <div className="spinner-border text-primary" role="status">
+                      <span className="visually-hidden">Loading...</span>
+                    </div>
+                  </div>
+                )}
+                
+                {!loading && volunteerRecords.length === 0 ? (
+                  <div className="text-center py-4">
+                    <p className="lead">You don't have any volunteer history records yet.</p>
+                    <Button 
+                      variant="primary"
+                      onClick={() => navigate('/events')}
+                    >
+                      Browse Available Events
+                    </Button>
+                  </div>
+                ) : (
+                  !loading && (
+                    <Table responsive striped hover>
+                      <thead>
+                        <tr>
+                          <th>Event</th>
+                          <th>Date</th>
+                          <th>Location</th>
+                          <th>Check In/Out</th>
+                          <th>Hours</th>
+                          <th>Skills Used</th>
+                          <th>Status</th>
+                          <th>Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {volunteerRecords.map((record) => (
+                          <tr key={record.id}>
+                            <td>
+                              <div>{record.eventName}</div>
+                              <small className="text-muted">{record.description}</small>
+                            </td>
+                            <td>{record.eventDate}</td>
+                            <td>{record.location}</td>
+                            <td>
+                              {record.checkInTime} - {record.checkOutTime}
+                            </td>
+                            <td>{record.hoursServed}</td>
+                            <td>
+                              {record.skills.map((skill, index) => (
+                                <span key={index} className="badge bg-info me-1">
+                                  {skill}
+                                </span>
+                              ))}
+                            </td>
+                            <td>
+                              <span className={`badge ${record.status === 'Completed' ? 'bg-success' : 'bg-warning'}`}>
+                                {record.status}
+                              </span>
+                            </td>
+                            <td>
+                              <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                className="me-2"
+                                onClick={() => navigate(`/event-details/${record.id}`)}
+                              >
+                                View Details
+                              </Button>
+                              <Button 
+                                variant="outline-secondary" 
+                                size="sm"
+                                onClick={() => exportRecord(record.id)}
+                              >
+                                Export
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  )
+                )}
               </Card.Body>
             </Card>
           </Col>

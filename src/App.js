@@ -18,6 +18,7 @@ import "bootstrap/dist/css/bootstrap.min.css";
 import Notification from "./pages/Notification";
 import ProfileVolunteer from "./pages/ProfileVolunteer";
 import ProfileAdmin from "./pages/ProfileAdmin";
+import SingleVolunteerHistory from "./pages/SingleVolunteerhistory";
 
 
 
@@ -42,6 +43,7 @@ function App() {
         <Route path="/notifications" element={<Notification />} />
         <Route path="/profile-volunteer" element={<ProfileVolunteer />} />
         <Route path="/profile-admin" element={<ProfileAdmin />} />
+        <Route path= "/history" element={<SingleVolunteerHistory />} />
       </Routes>
     </Router>
   );
