@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Form, Button, Alert } from 'react-bootstrap';
-import { Link, useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Table, Form, Button, Alert, Dropdown } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import NavigationBar from './NavigationBar';
 
 const VolunteerHistory = () => {
@@ -96,6 +97,18 @@ const VolunteerHistory = () => {
     console.log('Exporting record:', record);
   };
 
+  const handleDownload = async (type) => {
+    const endpoint = type === 'csv' ? '/api/reports/csv' : '/api/reports/pdf';
+    const response = await axios.get(`http://localhost:3001${endpoint}`, { responseType: 'blob' });
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `report.${type}`);
+    document.body.appendChild(link);
+    link.click();
+    link.parentNode.removeChild(link);
+  };
+
   if (loading) {
     return <div>Loading Volunteer History...</div>;
   }
@@ -169,9 +182,22 @@ const VolunteerHistory = () => {
             <Card className="shadow-lg">
               <Card.Header className="bg-dark text-white d-flex justify-content-between align-items-center">
                 <h2 className="mb-0">Volunteer History</h2>
-                <Button variant="outline-light" size="sm">
-                  Export All Records
-                </Button>
+                <Dropdown>
+                  <Dropdown.Toggle variant="outline-light" size="sm">
+                    Export All Records
+                  </Dropdown.Toggle>
+                  <Dropdown.Menu>
+                    <Dropdown.Item onClick={() => handleDownload('csv')}>
+                      Download CSV
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => handleDownload('pdf')}>
+                      Download PDF
+                    </Dropdown.Item>
+                    <Dropdown.Item onClick={() => { handleDownload('csv'); handleDownload('pdf'); }}>
+                      Download All
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown>
               </Card.Header>
               <Card.Body>
                 <Table responsive striped hover>

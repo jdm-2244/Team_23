@@ -6,7 +6,6 @@ console.log('DB_DATABASE:', process.env.DB_DATABASE);
 console.log('DB_PASSWORD:', process.env.DB_PASSWORD);
 console.log('Current working directory:', process.cwd());
 
-
 const express = require('express');
 const sgMail = require('@sendgrid/mail');
 const cors = require('cors');
@@ -20,13 +19,13 @@ const userProfileRouter = require('./userProfileRoutes');
 const volunteerMatchRouter = require('./VolunteerMatchRoutes');
 const eventRouter = require('./eventManagementRoutes');
 const eventSearchRouter = require('./eventSearchRoutes');
-const singleVolunteerHistoryRouter = require('./singleVolunteerHistoryRoutes');
+const singleVolunteerHistoryRouter = require('./singularVolunteerHistoryRoutes');
+const reportRoutes = require('./reportRoutes');
 
 console.log("SendGrid API Key:", process.env.SENDGRID_API_KEY ? "Loaded" : "Not Loaded");
 
 const app = express();
 
-// Only set up SendGrid if a valid API key is provided
 if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 3) {
   sgMail.setApiKey(process.env.SENDGRID_API_KEY);
   console.log('SendGrid configured successfully');
@@ -36,17 +35,15 @@ if (process.env.SENDGRID_API_KEY && process.env.SENDGRID_API_KEY.length > 3) {
 
 app.use(cors({
   origin: 'http://localhost:3000',
-  credentials: true}
-));
+  credentials: true
+}));
 app.use(express.json());
 
-// Add this before your routes in server.js
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.originalUrl}`);
   next();
 });
 
-// API Routes
 app.use('/api/volunteer-history', volunteerHistoryRouter);
 app.use('/api/notifications', notificationRouter);
 app.use('/api', loginRouter);
@@ -55,7 +52,7 @@ app.use('/api/volunteer-matcher', volunteerMatchRouter);
 app.use('/api/events', eventRouter);
 app.use('/api/event-search', eventSearchRouter);
 app.use('/api/single-volunteer-history', singleVolunteerHistoryRouter);
-
+app.use('/api/reports', reportRoutes);
 
 app.get('/', (req, res) => {
   res.send('Volunteering Organization API is running');
@@ -69,13 +66,11 @@ app.use((err, req, res, next) => {
   });
 });
 
-
-// Setting the server port
 const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}`);
-  console.log(`possible connection: ${process.env.DB_DATABASE} at ${process.env.DB_HOST}`)
-  console.log(`This is a test to just see if the server can actually connect to the db`)
+  console.log(`possible connection: ${process.env.DB_DATABASE} at ${process.env.DB_HOST}`);
+  console.log(`This is a test to just see if the server can actually connect to the db`);
 });
 
 module.exports = app;
