@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Table, Form, Button, Alert } from 'react-bootstrap';
-import { useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Table, Form, Button, Alert, ListGroup } from 'react-bootstrap';
+import { Link, useNavigate } from 'react-router-dom';
 import NavigationBar from './NavigationBar';
 import axios from 'axios';
 
@@ -11,9 +11,22 @@ const VolunteerHistory = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
   const [volunteerRecords, setVolunteerRecords] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   
+  const notifications = [
+    { id: 1, message: "New event added in your area", time: "2 min ago" },
+    { id: 2, message: "Profile update successful", time: "1 hour ago" },
+    { id: 3, message: "New message from admin", time: "3 hours ago" }
+  ];
+
+  const handleLogout = () => {
+    localStorage.removeItem("username");
+    localStorage.removeItem("role");
+    console.log("User logged out");
+    navigate("/login");
+  };
+
   // Get current username from localStorage or session
-  // Replace this with how you currently store the logged-in user
   const getCurrentUsername = () => {
     return localStorage.getItem('username') || sessionStorage.getItem('username'); 
   };
@@ -32,8 +45,7 @@ const VolunteerHistory = () => {
         }
         
         // Use the endpoint that fetches only the current user's history
-        // Pass username in header if you don't have proper authentication middleware yet
-        const response = await axios.get('http://localhost:3001/api/volunteer-history/my-history', {
+        const response = await axios.get('http://localhost:3001/api/single-volunteer-history/my-history', {
           headers: {
             'x-username': username // Remove this once proper auth is implemented
           }
@@ -52,51 +64,29 @@ const VolunteerHistory = () => {
     fetchUserHistory();
   }, [navigate]);
 
-  // Handle filtering
-  useEffect(() => {
-    if (!searchTerm && !dateFilter) return; // Skip if no filters
+  // Handle search filtering - client-side approach for simplicity
+  const filteredRecords = volunteerRecords.filter(record => {
+    // Apply search filter
+    const matchesSearch = !searchTerm || 
+      record.eventName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      record.location?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const fetchFilteredData = async () => {
-      setLoading(true);
-      try {
-        const username = getCurrentUsername();
-        
-        // For this demo, we'll refilter the data client-side
-        // In a real app, you might want to send these filters to the server
-        const response = await axios.get('http://localhost:3001/api/volunteer-history/my-history', {
-          params: {
-            search: searchTerm,
-            date: dateFilter
-          },
-          headers: {
-            'x-username': username // Remove this once proper auth is implemented
-          }
-        });
-        
-        setVolunteerRecords(response.data);
-        setError('');
-      } catch (err) {
-        console.error('Error fetching filtered data:', err);
-        setError('Failed to apply filters. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    // Debounce the search
-    const timeoutId = setTimeout(() => {
-      fetchFilteredData();
-    }, 500);
-
-    return () => clearTimeout(timeoutId);
-  }, [searchTerm, dateFilter]);
+    // Apply date filter (by month and year)
+    const matchesDate = !dateFilter || 
+      (record.eventDate && record.eventDate.startsWith(dateFilter));
+    
+    return matchesSearch && matchesDate;
+  });
 
   // Export a record
   const exportRecord = async (recordId) => {
     try {
-      const response = await axios.get(`http://localhost:3001/api/volunteer-history/export/${recordId}`);
-      alert('Record exported successfully!');
+      const response = await axios.get(`http://localhost:3001/api/single-volunteer-history/export/${recordId}`);
+      
       // For a real app, you'd handle the file download here
+      // For now, just show the data in an alert
+      alert(`Record exported successfully!\nCertificate: ${response.data.certificate?.certificateNumber || 'Not available'}`);
     } catch (err) {
       console.error('Error exporting record:', err);
       setError(err.response?.data?.error || 'Failed to export record');
@@ -114,21 +104,84 @@ const VolunteerHistory = () => {
       }}
     >
       <NavigationBar />
-      
-      {/* Sidebar with filters */}
+
+      {/* Combined Sidebar */}
       <div
         className="bg-dark text-white d-flex flex-column justify-content-between align-items-center rounded shadow-lg"
         style={{
           width: "220px",
-          minHeight: "360px",
           position: "fixed",
           left: "20px",
           top: "120px",
           padding: "20px",
         }}
       >
-        <div className="w-100">
-          <h5 className="text-center mb-4">Filters</h5>
+        {/* Notification Bell */}
+        <div className="position-relative w-100 mb-4">
+          <button
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="bg-dark border-0 text-white p-2 w-100 d-flex align-items-center justify-content-center position-relative"
+            style={{ cursor: 'pointer' }}
+          >
+            🔔
+            <span
+              className="position-absolute bg-danger rounded-circle d-flex align-items-center justify-content-center"
+              style={{
+                width: '20px',
+                height: '20px',
+                top: '0',
+                right: '40px',
+                fontSize: '12px'
+              }}
+            >
+              {notifications.length}
+            </span>
+          </button>
+
+          {/* Dropdown list of notifications */}
+          {showNotifications && (
+            <div
+              className="position-absolute bg-dark rounded shadow-lg"
+              style={{
+                width: '175px',
+                left: '0',
+                top: '100%',
+                zIndex: 1000
+              }}
+            >
+              {notifications.map(notification => (
+                <div
+                  key={notification.id}
+                  className="p-3 border-bottom border-secondary"
+                  style={{ cursor: 'pointer' }}
+                >
+                  <p className="mb-1 fs-6">{notification.message}</p>
+                  <small className="text-muted">{notification.time}</small>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Navigation Links */}
+        <ListGroup variant="flush" className="w-100 text-center mb-4">
+          <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+            <Link to="/dashboard" className="text-decoration-none text-white fs-6">🏠 Dashboard</Link>
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+            <Link to="/profile-volunteer" className="text-decoration-none text-white fs-6">👤 Profile</Link>
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+            <Link to="/eventsearch" className="text-decoration-none text-white fs-6">🔍 Event Search</Link>
+          </ListGroup.Item>
+          <ListGroup.Item className="bg-dark text-white border-0 py-2" style={{ whiteSpace: "nowrap" }}>
+            <Link to="/history" className="text-decoration-none text-white fs-6">📜 History</Link>
+          </ListGroup.Item>
+        </ListGroup>
+
+        {/* Filters */}
+        <div className="w-100 mb-4">
+          <h5 className="text-center mb-3">Filters</h5>
           <Form>
             <Form.Group className="mb-3">
               <Form.Label>Search Events</Form.Label>
@@ -150,12 +203,13 @@ const VolunteerHistory = () => {
           </Form>
         </div>
 
+        {/* Logout Button */}
         <Button
           variant="danger"
-          className="w-100 mt-3"
-          onClick={() => navigate('/dashboard')}
+          className="w-100 mt-auto"
+          onClick={handleLogout}
         >
-          ← Back to Dashboard
+          🚪 Log Out
         </Button>
       </div>
 
@@ -182,12 +236,16 @@ const VolunteerHistory = () => {
                   </div>
                 )}
                 
-                {!loading && volunteerRecords.length === 0 ? (
+                {!loading && filteredRecords.length === 0 ? (
                   <div className="text-center py-4">
-                    <p className="lead">You don't have any volunteer history records yet.</p>
+                    <p className="lead">
+                      {volunteerRecords.length === 0 
+                        ? "You don't have any volunteer history records yet." 
+                        : "No records match your search criteria."}
+                    </p>
                     <Button 
                       variant="primary"
-                      onClick={() => navigate('/events')}
+                      onClick={() => navigate('/eventsearch')}
                     >
                       Browse Available Events
                     </Button>
@@ -200,46 +258,49 @@ const VolunteerHistory = () => {
                           <th>Event</th>
                           <th>Date</th>
                           <th>Location</th>
-                          <th>Check In/Out</th>
-                          <th>Hours</th>
-                          <th>Skills Used</th>
                           <th>Status</th>
+                          <th>Skills</th>
+                          <th>Urgency</th>
                           <th>Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {volunteerRecords.map((record) => (
+                        {filteredRecords.map((record) => (
                           <tr key={record.id}>
                             <td>
-                              <div>{record.eventName}</div>
+                              <div className="fw-bold">{record.eventName}</div>
                               <small className="text-muted">{record.description}</small>
                             </td>
                             <td>{record.eventDate}</td>
                             <td>{record.location}</td>
-                            <td>
-                              {record.checkInTime} - {record.checkOutTime}
-                            </td>
-                            <td>{record.hoursServed}</td>
-                            <td>
-                              {record.skills.map((skill, index) => (
-                                <span key={index} className="badge bg-info me-1">
-                                  {skill}
-                                </span>
-                              ))}
-                            </td>
                             <td>
                               <span className={`badge ${record.status === 'Completed' ? 'bg-success' : 'bg-warning'}`}>
                                 {record.status}
                               </span>
                             </td>
                             <td>
+                              {record.skills && record.skills.map((skill, index) => (
+                                <span key={index} className="badge bg-info me-1 mb-1">
+                                  {skill}
+                                </span>
+                              ))}
+                            </td>
+                            <td>
+                              <span className={`badge ${
+                                record.urgency === 'High' ? 'bg-danger' : 
+                                record.urgency === 'Medium' ? 'bg-warning' : 'bg-secondary'
+                              }`}>
+                                {record.urgency}
+                              </span>
+                            </td>
+                            <td>
                               <Button 
                                 variant="outline-primary" 
                                 size="sm" 
-                                className="me-2"
+                                className="me-2 mb-1"
                                 onClick={() => navigate(`/event-details/${record.id}`)}
                               >
-                                View Details
+                                Details
                               </Button>
                               <Button 
                                 variant="outline-secondary" 
