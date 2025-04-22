@@ -87,28 +87,52 @@ const VolunteerHistory = () => {
       setError('Record not found');
       return;
     }
-
+  
     const validationErrors = validateRecord(record);
     if (validationErrors.length > 0) {
       setError(`Cannot export invalid record: ${validationErrors.join(', ')}`);
       return;
     }
-
-    console.log('Exporting record:', record);
+  
+    // Instead of just logging, actually export:
+    try {
+      axios.get(`http://localhost:3001/api/volunteer-history/${record.id}/export`, {
+        responseType: 'blob'
+      })
+      .then(response => {
+        const url = window.URL.createObjectURL(new Blob([response.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `volunteer-record-${record.id}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode.removeChild(link);
+      });
+    } catch (error) {
+      setError('Export failed: ' + error.message);
+    }
   };
-
+  
+  // Improve download handler with error handling
   const handleDownload = async (type) => {
-    const endpoint = type === 'csv' ? '/api/reports/csv' : '/api/reports/pdf';
-    const response = await axios.get(`http://localhost:3001${endpoint}`, { responseType: 'blob' });
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `report.${type}`);
-    document.body.appendChild(link);
-    link.click();
-    link.parentNode.removeChild(link);
+    try {
+      const endpoint = type === 'csv' ? '/api/reports/csv' : '/api/reports/pdf';
+      const response = await axios.get(`http://localhost:3001${endpoint}`, { 
+        responseType: 'blob' 
+      });
+      
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `volunteer-report.${type}`);
+      document.body.appendChild(link);
+      link.click();
+      window.URL.revokeObjectURL(url); // Clean up
+      link.parentNode.removeChild(link);
+    } catch (error) {
+      setError(`Failed to download ${type.toUpperCase()}: ${error.message}`);
+    }
   };
-
   if (loading) {
     return <div>Loading Volunteer History...</div>;
   }
@@ -193,10 +217,11 @@ const VolunteerHistory = () => {
                     <Dropdown.Item onClick={() => handleDownload('pdf')}>
                       Download PDF
                     </Dropdown.Item>
-                    <Dropdown.Item onClick={() => { handleDownload('csv'); handleDownload('pdf'); }}>
+                    <Dropdown.Item onClick={() => handleDownload('all')}>
                       Download All
                     </Dropdown.Item>
                   </Dropdown.Menu>
+ 
                 </Dropdown>
               </Card.Header>
               <Card.Body>

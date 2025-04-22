@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const pool = require('./config/database'); // Assuming your database config is here
+const { generateVolunteerHistoryCSV } = require('./csvGenerator');
 
+// Shared validation function - could be moved to a separate utils file
 function validateRecord(record) {
   const errors = [];
 
@@ -74,21 +76,9 @@ async function getVolunteerHistory() {
   }
 }
 
-// GET all volunteer history records
-router.get('/', async (req, res) => {
+// Helper function to get a single volunteer history record
+async function getVolunteerRecord(recordId) {
   try {
-    const records = await getVolunteerHistory();
-    res.json(records);
-  } catch (error) {
-    res.status(500).json({ error: 'Failed to fetch volunteer history records' });
-  }
-});
-
-// GET a single volunteer history record
-router.get('/:id', async (req, res) => {
-  try {
-    const recordId = parseInt(req.params.id, 10);
-    
     const [rows] = await pool.query(`
       SELECT 
         vh.HID as id,
@@ -114,22 +104,69 @@ router.get('/:id', async (req, res) => {
       JOIN User_Profile up ON vh.UID = up.user_id
       WHERE vh.HID = ?
     `, [recordId]);
-
+    
     if (rows.length === 0) {
-      return res.status(404).json({ error: 'Record not found' });
+      return null;
     }
     
     // Process skills into array
-    const record = {
+    return {
       ...rows[0],
       checkedIn: rows[0].status === 'Completed',
       skills: rows[0].skills ? rows[0].skills.split(',') : []
     };
+  } catch (error) {
+    console.error('Error fetching volunteer history record:', error);
+    throw error;
+  }
+}
+
+// GET all volunteer history records
+router.get('/', async (req, res) => {
+  try {
+    const records = await getVolunteerHistory();
+    res.json(records);
+  } catch (error) {
+    console.error('Error fetching volunteer records:', error);
+    res.status(500).json({ error: 'Failed to fetch volunteer history records' });
+  }
+});
+
+// GET a single volunteer history record
+router.get('/:id', async (req, res) => {
+  try {
+    const recordId = parseInt(req.params.id, 10);
+    const record = await getVolunteerRecord(recordId);
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
     
     res.json(record);
   } catch (error) {
-    console.error('Error fetching volunteer history record:', error);
+    console.error('Error fetching volunteer record:', error);
     res.status(500).json({ error: 'Failed to fetch the volunteer history record' });
+  }
+});
+
+// NEW: Export a single volunteer record as CSV
+router.get('/:id/export', async (req, res) => {
+  try {
+    const recordId = parseInt(req.params.id, 10);
+    const record = await getVolunteerRecord(recordId);
+    
+    if (!record) {
+      return res.status(404).json({ error: 'Record not found' });
+    }
+    
+    const csvData = generateVolunteerHistoryCSV([record]);
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename=volunteer-record-${recordId}.csv`);
+    res.send(csvData);
+  } catch (error) {
+    console.error('Error exporting record:', error);
+    res.status(500).json({ error: 'Failed to export record' });
   }
 });
 
@@ -165,49 +202,16 @@ router.post('/', async (req, res) => {
     }
     const userId = userRows[0].username;
     
-    // Insert the new record
+    // Insert the new record using parameterized query
     const [result] = await pool.query(
       'INSERT INTO Volunteering_History (EID, UID, checkin) VALUES (?, ?, ?)',
       [eventId, userId, newRecord.status === 'Completed' ? 1 : 0]
     );
     
     const newId = result.insertId;
+    const createdRecord = await getVolunteerRecord(newId);
     
-    // Fetch the newly created record to return it
-    const [newRecordRows] = await pool.query(`
-      SELECT 
-        vh.HID as id,
-        CONCAT(up.first_name, ' ', up.last_name) as volunteerName,
-        e.Name as eventName,
-        DATE_FORMAT(e.Date, '%Y-%m-%d') as eventDate,
-        IF(vh.checkin = 1, 'Completed', 'Pending') as status,
-        l.venue_name as location,
-        e.max_volunteers as maxVolunteers,
-        e.Description as description,
-        u.role,
-        e.Urgency as urgency,
-        (
-          SELECT GROUP_CONCAT(s.skill_name)
-          FROM User_Skills us
-          JOIN Skills s ON us.skill_id = s.skill_id
-          WHERE us.user_id = vh.UID
-        ) as skills
-      FROM Volunteering_History vh
-      JOIN Events e ON vh.EID = e.EID
-      JOIN Locations l ON e.Location_id = l.LocID
-      JOIN Users u ON vh.UID = u.username
-      JOIN User_Profile up ON vh.UID = up.user_id
-      WHERE vh.HID = ?
-    `, [newId]);
-    
-    // Process skills into array
-    const result2 = {
-      ...newRecordRows[0],
-      checkedIn: newRecordRows[0].status === 'Completed',
-      skills: newRecordRows[0].skills ? newRecordRows[0].skills.split(',') : []
-    };
-    
-    res.status(201).json(result2);
+    res.status(201).json(createdRecord);
   } catch (error) {
     console.error('Error creating volunteer history record:', error);
     res.status(500).json({ error: 'Failed to create volunteer history record' });
@@ -226,9 +230,9 @@ router.put('/:id', async (req, res) => {
     }
     
     // Check if record exists
-    const [existingRows] = await pool.query('SELECT HID FROM Volunteering_History WHERE HID = ?', [recordId]);
+    const existingRecord = await getVolunteerRecord(recordId);
     
-    if (existingRows.length === 0) {
+    if (!existingRecord) {
       return res.status(404).json({ error: 'Record not found' });
     }
     
@@ -254,46 +258,13 @@ router.put('/:id', async (req, res) => {
     }
     const userId = userRows[0].username;
     
-    // Update the record
+    // Update the record using parameterized query
     await pool.query(
       'UPDATE Volunteering_History SET EID = ?, UID = ?, checkin = ? WHERE HID = ?',
       [eventId, userId, updatedRecord.status === 'Completed' ? 1 : 0, recordId]
     );
     
-    // Fetch the updated record to return it
-    const [updatedRows] = await pool.query(`
-      SELECT 
-        vh.HID as id,
-        CONCAT(up.first_name, ' ', up.last_name) as volunteerName,
-        e.Name as eventName,
-        DATE_FORMAT(e.Date, '%Y-%m-%d') as eventDate,
-        IF(vh.checkin = 1, 'Completed', 'Pending') as status,
-        l.venue_name as location,
-        e.max_volunteers as maxVolunteers,
-        e.Description as description,
-        u.role,
-        e.Urgency as urgency,
-        (
-          SELECT GROUP_CONCAT(s.skill_name)
-          FROM User_Skills us
-          JOIN Skills s ON us.skill_id = s.skill_id
-          WHERE us.user_id = vh.UID
-        ) as skills
-      FROM Volunteering_History vh
-      JOIN Events e ON vh.EID = e.EID
-      JOIN Locations l ON e.Location_id = l.LocID
-      JOIN Users u ON vh.UID = u.username
-      JOIN User_Profile up ON vh.UID = up.user_id
-      WHERE vh.HID = ?
-    `, [recordId]);
-    
-    // Process skills into array
-    const result = {
-      ...updatedRows[0],
-      checkedIn: updatedRows[0].status === 'Completed',
-      skills: updatedRows[0].skills ? updatedRows[0].skills.split(',') : []
-    };
-    
+    const result = await getVolunteerRecord(recordId);
     res.json(result);
   } catch (error) {
     console.error('Error updating volunteer history record:', error);
@@ -307,13 +278,13 @@ router.delete('/:id', async (req, res) => {
     const recordId = parseInt(req.params.id, 10);
     
     // Check if record exists
-    const [existingRows] = await pool.query('SELECT HID FROM Volunteering_History WHERE HID = ?', [recordId]);
+    const existingRecord = await getVolunteerRecord(recordId);
     
-    if (existingRows.length === 0) {
+    if (!existingRecord) {
       return res.status(404).json({ error: 'Record not found' });
     }
     
-    // Delete the record
+    // Delete the record using parameterized query
     await pool.query('DELETE FROM Volunteering_History WHERE HID = ?', [recordId]);
     
     res.json({ message: 'Record deleted successfully' });
