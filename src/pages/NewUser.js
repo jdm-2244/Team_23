@@ -29,7 +29,7 @@ const NewUser = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
+  
     try {
       const username = localStorage.getItem("username");
       if (!username) {
@@ -37,34 +37,42 @@ const NewUser = () => {
         alert("Username not found. Please log in again.");
         return;
       }
-
+  
+      // Split full name into first and last name
+      const nameParts = formData.fullName.split(' ');
+      const firstName = nameParts[0];
+      const lastName = nameParts.length > 1 ? nameParts.slice(1).join(' ') : '';
+  
+      // Combine address parts into a single location string
+      const location = `${formData.address1}${formData.address2 ? ', ' + formData.address2 : ''}, ${formData.city}, ${formData.state} ${formData.zip}`;
+  
+      // Format data to match what the API expects
       const profileData = {
         username,
-        fullName: formData.fullName,
-        address1: formData.address1,
-        address2: formData.address2,
-        city: formData.city,
-        state: formData.state,
-        zip: formData.zip,
-        skills: formData.skills,
-        preferences: formData.preferences,
-        availability: formData.availability.map((date) => date.format("MM/DD/YYYY")),
+        firstName,
+        lastName,
+        location
       };
-
+  
       console.log("Submitting profile data:", profileData);
-
+  
       const response = await fetch("http://localhost:3001/api/user/profiles", { 
         method: "POST", 
         headers: { "Content-Type": "application/json" }, 
         body: JSON.stringify(profileData) 
       });
-
+  
       console.log("Response status:", response.status);
       const data = await response.json();
       console.log("Response data:", data);
-
+  
       if (response.ok) {
         alert("Profile submitted successfully!");
+        
+        // Store skills, preferences, and availability separately
+        // Note: You would need to create additional API endpoints for these
+        // if you want to store them in their respective tables
+        
         const role = localStorage.getItem("role");
         navigate(role === "admin" ? "/admin-dashboard" : "/dashboard");
       } else {

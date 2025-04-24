@@ -21,6 +21,8 @@ const eventRouter = require('./eventManagementRoutes');
 const eventSearchRouter = require('./eventSearchRoutes');
 const singleVolunteerHistoryRouter = require('./singularVolunteerHistoryRoutes');
 const reportRoutes = require('./reportRoutes');
+const adminNotificationRouter = require('./admin_send_notification');
+const dashboardRouter = require('./dashboardRoutes');
 
 console.log("SendGrid API Key:", process.env.SENDGRID_API_KEY ? "Loaded" : "Not Loaded");
 
@@ -53,6 +55,8 @@ app.use('/api/events', eventRouter);
 app.use('/api/event-search', eventSearchRouter);
 app.use('/api/single-volunteer-history', singleVolunteerHistoryRouter);
 app.use('/api/reports', reportRoutes);
+app.use('/api/admin/volunteer-notifications', adminNotificationRouter);
+app.use('/api/dashboard', dashboardRouter);
 
 app.get('/', (req, res) => {
   res.send('Volunteering Organization API is running');
